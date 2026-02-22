@@ -44,18 +44,6 @@ export async function getRepo(owner, repo) {
   return res.json();
 }
 
-export async function updateRepoRelatedLinks(id, relatedLinks) {
-  const res = await fetch(`${API}/repos/${id}`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    credentials: 'include',
-    body: JSON.stringify({ relatedLinks: Array.isArray(relatedLinks) ? relatedLinks : [] }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || 'Failed to update');
-  return data;
-}
-
 export async function getPackage(name) {
   const res = await fetch(`${API}/package/${encodeURIComponent(name)}`);
   if (res.status === 404) return null;

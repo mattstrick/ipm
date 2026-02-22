@@ -1,4 +1,4 @@
-import { getRepo, updateRepoRelatedLinks } from '../api.js';
+import { getRepo } from '../api.js';
 
 function escapeHtml(s) {
   if (s == null) return '';
@@ -28,11 +28,7 @@ export function renderRepo(params) {
   const contentEl = section.querySelector('#repo-content');
 
   function getRelatedLinks(r) {
-    if (r.relatedLinks && Array.isArray(r.relatedLinks)) return r.relatedLinks;
-    if (r.relatedLinkUrl && r.relatedLinkUrl.trim()) {
-      return [{ label: r.relatedLinkLabel || 'Related', url: r.relatedLinkUrl }];
-    }
-    return [];
+    return (r.relatedLinks && Array.isArray(r.relatedLinks)) ? r.relatedLinks : [];
   }
 
   function renderRelatedLinks(links) {
@@ -41,33 +37,6 @@ export function renderRepo(params) {
       <p class="related-links-list">
         ${links.map((l) => `<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener" class="btn btn-outline">${escapeHtml(l.label || 'Link')}</a>`).join(' ')}
       </p>
-    `;
-  }
-
-  function renderRelatedLinkForm(r) {
-    const links = getRelatedLinks(r);
-    const rows = links.length
-      ? links
-          .map(
-            (l, i) => `
-          <div class="related-link-row" data-index="${i}">
-            <input class="related-label" placeholder="Label" value="${escapeHtml(l.label || '')}" />
-            <input class="related-url" type="url" placeholder="URL" value="${escapeHtml(l.url || '')}" />
-            <button type="button" class="btn btn-outline btn-sm related-link-remove">Remove</button>
-          </div>
-        `
-          )
-          .join('')
-      : '';
-    return `
-      <div class="related-link-form" id="related-link-form">
-        <h3>Other implementations</h3>
-        <p class="form-hint">e.g. Kotlin version, Python port. Add as many as you like.</p>
-        <div id="related-link-rows">${rows}</div>
-        <button type="button" class="btn btn-outline btn-sm" id="related-link-add">Add another</button>
-        <div class="error" id="related-link-error" hidden></div>
-        <button type="button" class="btn btn-primary" id="related-link-save">Save links</button>
-      </div>
     `;
   }
 
@@ -100,7 +69,6 @@ export function renderRepo(params) {
             <p>This is a GitHub repo you added to your registry. It appears first when you search for it.</p>
             <p><a href="${escapeHtml(r.repoUrl)}" target="_blank" rel="noopener" class="btn btn-primary">Open on GitHub</a></p>
             ${renderRelatedLinks(relatedLinks)}
-            ${renderRelatedLinkForm(r)}
           </div>
           <aside>
             <div class="sidebar-box">
@@ -112,53 +80,6 @@ export function renderRepo(params) {
           </aside>
         </div>
       `;
-
-      const rowsContainer = contentEl.querySelector('#related-link-rows');
-      const addBtn = contentEl.querySelector('#related-link-add');
-      const saveBtn = contentEl.querySelector('#related-link-save');
-      const errorEl = contentEl.querySelector('#related-link-error');
-
-      function addRow(label = '', url = '') {
-        const div = document.createElement('div');
-        div.className = 'related-link-row';
-        div.innerHTML = `
-          <input class="related-label" placeholder="Label" value="${escapeHtml(label)}" />
-          <input class="related-url" type="url" placeholder="URL" value="${escapeHtml(url)}" />
-          <button type="button" class="btn btn-outline btn-sm related-link-remove">Remove</button>
-        `;
-        div.querySelector('.related-link-remove').addEventListener('click', () => div.remove());
-        rowsContainer.appendChild(div);
-      }
-
-      function collectLinks() {
-        return [...rowsContainer.querySelectorAll('.related-link-row')]
-          .map((row) => ({
-            label: (row.querySelector('.related-label')?.value || '').trim(),
-            url: (row.querySelector('.related-url')?.value || '').trim(),
-          }))
-          .filter((x) => x.url);
-      }
-
-      addBtn?.addEventListener('click', () => addRow());
-      contentEl.querySelectorAll('.related-link-remove').forEach((btn) => {
-        btn.addEventListener('click', () => btn.closest('.related-link-row')?.remove());
-      });
-
-      if (saveBtn) {
-        saveBtn.addEventListener('click', async () => {
-          const links = collectLinks();
-          errorEl.hidden = true;
-          errorEl.textContent = '';
-          try {
-            await updateRepoRelatedLinks(r.id, links);
-            window.history.pushState({}, '', window.location.pathname);
-            window.dispatchEvent(new PopStateEvent('popstate'));
-          } catch (err) {
-            errorEl.textContent = err.message;
-            errorEl.hidden = false;
-          }
-        });
-      }
     } catch (err) {
       contentEl.innerHTML = `
         <div class="empty-state">

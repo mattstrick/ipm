@@ -126,24 +126,6 @@ export function getLanguageByCode(database, code) {
   return stmt.get(code) || null;
 }
 
-/** Normalize related links: prefer related_links JSON array; fallback to single related_link_url/label */
-export function parseRelatedLinks(row) {
-  if (!row) return [];
-  if (row.relatedLinks != null && Array.isArray(row.relatedLinks)) return row.relatedLinks;
-  if (row.related_links) {
-    try {
-      const arr = JSON.parse(row.related_links);
-      return Array.isArray(arr) ? arr : [];
-    } catch {
-      return [];
-    }
-  }
-  if (row.relatedLinkUrl && row.relatedLinkUrl.trim()) {
-    return [{ label: row.relatedLinkLabel || 'Related', url: row.relatedLinkUrl }];
-  }
-  return [];
-}
-
 export function searchPackages(database, query, limit = 50) {
   const q = query.trim().toLowerCase();
   if (!q) {
@@ -298,10 +280,3 @@ export function getUserRepoByName(database, userId, name) {
   return stmt.get(userId, name) || null;
 }
 
-export function updateUserRepoRelatedLinks(database, id, userId, relatedLinks) {
-  const json = JSON.stringify(Array.isArray(relatedLinks) ? relatedLinks : []);
-  const stmt = database.prepare(`
-    UPDATE user_repos SET related_links = ? WHERE id = ? AND user_id = ?
-  `);
-  return stmt.run(json, id, userId);
-}
