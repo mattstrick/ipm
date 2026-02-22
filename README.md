@@ -7,6 +7,7 @@ A package registry UI — same look and feel as classic registry sites, with opt
 - **Home** – Hero and marketing copy in ipm style
 - **Search** – Search bar and package list (from API/database or upstream registry)
 - **Package** – Package detail page with install command (`ipm install`), readme, and sidebar metadata
+- **Sign up / Sign in** – Create an account or sign in; session is stored in an httpOnly cookie (JWT). When signed in, the header shows your name and Sign out.
 
 Design uses ipm’s red/black palette, header with search, and familiar layout.
 
@@ -42,6 +43,7 @@ If you don’t run the API server, the search and package pages will show an err
 - **Location:** `data/packages.db` (SQLite). Created automatically on first request.
 - **Custom path:** set `IPM_DB_PATH` to a full path to the DB file.
 - **Behavior:** Search and package-detail requests hit the upstream registry when data isn’t in the DB; results are cached so repeat requests are fast.
+- **Users:** Sign-up data is stored in the same SQLite DB (table `users`). For production, set `JWT_SECRET` to a long random string for signing auth tokens.
 
 ## Build
 

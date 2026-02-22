@@ -1,13 +1,18 @@
+import { refreshAuth } from './auth.js';
 import { renderHeader } from './components/header.js';
 import { renderFooter } from './components/footer.js';
 import { renderHome } from './pages/home.js';
 import { renderSearch } from './pages/search.js';
 import { renderPackage } from './pages/package.js';
+import { renderSignup } from './pages/signup.js';
+import { renderSignin } from './pages/signin.js';
 
 const routes = [
   { path: '/', render: renderHome },
   { path: '/search', render: renderSearch },
   { path: '/package/:name', render: renderPackage },
+  { path: '/signup', render: renderSignup },
+  { path: '/signin', render: renderSignin },
 ];
 
 function getRoute() {
@@ -17,6 +22,8 @@ function getRoute() {
   if (path === '/search') return { route: routes[1], params: {} };
   const pkgMatch = path.match(/^\/package\/(.+)$/);
   if (pkgMatch) return { route: routes[2], params: { name: decodeURIComponent(pkgMatch[1]) } };
+  if (path === '/signup') return { route: routes[3], params: {} };
+  if (path === '/signin') return { route: routes[4], params: {} };
   return null;
 }
 
@@ -33,6 +40,11 @@ function init() {
   app.appendChild(renderFooter());
 }
 
+async function boot() {
+  await refreshAuth();
+  init();
+}
+
 // Delegated SPA nav so links added after async content (e.g. search) work
 document.getElementById('app').addEventListener('click', (e) => {
   const link = e.target.closest('a[data-spa]');
@@ -46,4 +58,4 @@ document.getElementById('app').addEventListener('click', (e) => {
 });
 
 window.addEventListener('popstate', init);
-window.addEventListener('DOMContentLoaded', init);
+window.addEventListener('DOMContentLoaded', boot);

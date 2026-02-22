@@ -1,4 +1,7 @@
+import { getCurrentUser, signout } from '../auth.js';
+
 export function renderHeader() {
+  const user = getCurrentUser();
   const header = document.createElement('header');
   header.className = 'site-header';
   header.innerHTML = `
@@ -15,11 +18,27 @@ export function renderHeader() {
         />
       </form>
     </div>
-    <div class="header-actions">
-      <a href="/search" class="btn btn-outline" data-spa>Sign Up</a>
-      <a href="/search" class="btn btn-primary" data-spa>Sign In</a>
+    <div class="header-actions" id="header-actions">
+      ${user
+        ? `
+        <span class="header-user">${escapeHtml(user.name || user.email)}</span>
+        <button type="button" class="btn btn-outline" id="header-signout">Sign out</button>
+      `
+        : `
+        <a href="/signup" class="btn btn-outline" data-spa>Sign Up</a>
+        <a href="/signin" class="btn btn-primary" data-spa>Sign In</a>
+      `}
     </div>
   `;
+
+  const signOutBtn = header.querySelector('#header-signout');
+  if (signOutBtn) {
+    signOutBtn.addEventListener('click', async () => {
+      await signout();
+      window.history.pushState({}, '', '/');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    });
+  }
 
   const form = header.querySelector('#header-search-form');
   const input = header.querySelector('input[name="q"]');
@@ -34,4 +53,11 @@ export function renderHeader() {
   }
 
   return header;
+}
+
+function escapeHtml(s) {
+  if (s == null) return '';
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML;
 }

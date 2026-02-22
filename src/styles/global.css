@@ -122,6 +122,15 @@ input, textarea, select {
   gap: 0.75rem;
 }
 
+.header-user {
+  font-size: 0.9375rem;
+  color: var(--ipm-gray-300);
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .btn {
   padding: 0.5rem 1rem;
   border-radius: var(--radius);
@@ -425,4 +434,63 @@ input, textarea, select {
 
 .empty-state p {
   margin: 0.5rem 0;
+}
+
+/* Auth forms */
+.auth-page {
+  max-width: 400px;
+  margin: 2rem auto;
+}
+
+.auth-page h1 {
+  font-size: 1.75rem;
+  margin: 0 0 1.5rem;
+  color: var(--ipm-black);
+}
+
+.auth-form .field {
+  margin-bottom: 1rem;
+}
+
+.auth-form label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ipm-gray-700);
+  margin-bottom: 0.35rem;
+}
+
+.auth-form input {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 2px solid var(--ipm-gray-300);
+  border-radius: var(--radius);
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: var(--ipm-red);
+}
+
+.auth-form .error {
+  font-size: 0.875rem;
+  color: #c00;
+  margin-top: 0.5rem;
+}
+
+.auth-form .submit-wrap {
+  margin-top: 1.25rem;
+}
+
+.auth-form button[type="submit"] {
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font-size: 1rem;
+}
+
+.auth-page .footer-link {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.9375rem;
+  color: var(--ipm-gray-700);
 }

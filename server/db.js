@@ -32,6 +32,15 @@ function initSchema(database) {
       fetched_at INTEGER
     );
     CREATE INDEX IF NOT EXISTS idx_packages_name_lower ON packages(LOWER(name));
+
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      name TEXT,
+      created_at INTEGER NOT NULL
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(email));
   `);
 }
 
@@ -95,4 +104,31 @@ export function upsertPackage(database, pkg) {
     pkg.homepage ?? null,
     now
   );
+}
+
+export function createUser(database, { email, passwordHash, name }) {
+  const stmt = database.prepare(`
+    INSERT INTO users (email, password_hash, name, created_at)
+    VALUES (?, ?, ?, ?)
+  `);
+  const result = stmt.run(email.trim().toLowerCase(), passwordHash, name?.trim() || null, Date.now());
+  return result.lastInsertRowid;
+}
+
+export function getUserByEmail(database, email) {
+  const stmt = database.prepare(`
+    SELECT id, email, password_hash as passwordHash, name, created_at as createdAt
+    FROM users WHERE LOWER(email) = LOWER(?)
+  `);
+  return stmt.get(email) || null;
+}
+
+export function getUserById(database, id) {
+  const stmt = database.prepare(`
+    SELECT id, email, name, created_at as createdAt
+    FROM users WHERE id = ?
+  `);
+  const row = stmt.get(id);
+  if (!row) return null;
+  return { id: row.id, email: row.email, name: row.name, createdAt: row.createdAt };
 }
