@@ -14,6 +14,8 @@ import {
   deleteUserRepo,
   getUserRepoById,
   getUserRepoByName,
+  updateUserRepoRelatedLinks,
+  parseRelatedLinks,
 } from './db.js';
 import { searchRegistry, getPackageFromRegistry, getPackageDetailsFromRegistry } from './registry.js';
 import { parseRepoUrl, fetchRepoMetadata } from './github.js';
@@ -50,6 +52,7 @@ app.get('/api/search', (req, res) => {
           source: 'repo',
           repoUrl: r.repoUrl,
           id: r.id,
+          relatedLinks: parseRelatedLinks(r),
         });
       }
     }
@@ -147,7 +150,7 @@ app.post('/api/repos', async (req, res) => {
     } catch (err) {
       return res.status(400).json({ error: err.message || 'Could not fetch repo from GitHub' });
     }
-    if (!meta) return res.status(404).json({ error: 'Repository not found' });
+    if (!meta) return res.status(400).json({ error: 'Repository not found. Check the URL or owner/repo—if the repo is private, we can\'t access it.' });
     const db = getDb();
     const existing = getUserRepoByName(db, req.user.id, meta.name);
     if (existing) return res.status(409).json({ error: 'You already added this repo' });
@@ -180,13 +183,36 @@ app.delete('/api/repos/:id', (req, res) => {
   }
 });
 
+app.patch('/api/repos/:id', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Not signed in' });
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid id' });
+    const { relatedLinks } = req.body || {};
+    const links = Array.isArray(relatedLinks)
+      ? relatedLinks
+          .filter((x) => x && (x.url || '').trim())
+          .map((x) => ({ label: (x.label || '').trim() || 'Related', url: String(x.url).trim() }))
+      : [];
+    const db = getDb();
+    updateUserRepoRelatedLinks(db, id, req.user.id, links);
+    const row = getUserRepoById(db, id, req.user.id);
+    const repo = row ? { ...row, relatedLinks: parseRelatedLinks(row) } : null;
+    res.json(repo || { ok: true });
+  } catch (err) {
+    console.error('Update repo error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/repo/:owner/:repo', (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'Not signed in' });
   try {
     const name = `${req.params.owner}/${req.params.repo}`;
     const db = getDb();
-    const repo = getUserRepoByName(db, req.user.id, name);
-    if (!repo) return res.status(404).json({ error: 'Repo not found in your list' });
+    const row = getUserRepoByName(db, req.user.id, name);
+    if (!row) return res.status(404).json({ error: 'Repo not found in your list' });
+    const repo = { ...row, relatedLinks: parseRelatedLinks(row) };
     res.json(repo);
   } catch (err) {
     console.error('Get repo error:', err);

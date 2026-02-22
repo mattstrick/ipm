@@ -60,6 +60,35 @@ function initSchema(database) {
   } catch {
     database.exec('ALTER TABLE packages ADD COLUMN published_at TEXT');
   }
+  try {
+    database.prepare('SELECT related_link_url FROM user_repos LIMIT 1').run();
+  } catch {
+    database.exec('ALTER TABLE user_repos ADD COLUMN related_link_url TEXT');
+    database.exec('ALTER TABLE user_repos ADD COLUMN related_link_label TEXT');
+  }
+  try {
+    database.prepare('SELECT related_links FROM user_repos LIMIT 1').run();
+  } catch {
+    database.exec('ALTER TABLE user_repos ADD COLUMN related_links TEXT');
+  }
+}
+
+/** Normalize related links: prefer related_links JSON array; fallback to single related_link_url/label */
+export function parseRelatedLinks(row) {
+  if (!row) return [];
+  if (row.relatedLinks != null && Array.isArray(row.relatedLinks)) return row.relatedLinks;
+  if (row.related_links) {
+    try {
+      const arr = JSON.parse(row.related_links);
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  }
+  if (row.relatedLinkUrl && row.relatedLinkUrl.trim()) {
+    return [{ label: row.relatedLinkLabel || 'Related', url: row.relatedLinkUrl }];
+  }
+  return [];
 }
 
 export function searchPackages(database, query, limit = 50) {
@@ -158,14 +187,16 @@ export function searchUserRepos(database, userId, query, limit = 50) {
   const q = query.trim().toLowerCase();
   if (!q) {
     const stmt = database.prepare(`
-      SELECT id, repo_url as repoUrl, name, description, added_at as addedAt
+      SELECT id, repo_url as repoUrl, name, description, added_at as addedAt,
+             related_link_url as relatedLinkUrl, related_link_label as relatedLinkLabel, related_links
       FROM user_repos WHERE user_id = ? ORDER BY added_at DESC LIMIT ?
     `);
     return stmt.all(userId, limit);
   }
   const pattern = `%${q}%`;
   const stmt = database.prepare(`
-    SELECT id, repo_url as repoUrl, name, description, added_at as addedAt
+    SELECT id, repo_url as repoUrl, name, description, added_at as addedAt,
+           related_link_url as relatedLinkUrl, related_link_label as relatedLinkLabel, related_links
     FROM user_repos
     WHERE user_id = ? AND (LOWER(name) LIKE ? OR (description IS NOT NULL AND LOWER(description) LIKE ?))
     ORDER BY added_at DESC LIMIT ?
@@ -175,7 +206,8 @@ export function searchUserRepos(database, userId, query, limit = 50) {
 
 export function getUserRepos(database, userId) {
   const stmt = database.prepare(`
-    SELECT id, repo_url as repoUrl, name, description, added_at as addedAt
+    SELECT id, repo_url as repoUrl, name, description, added_at as addedAt,
+           related_link_url as relatedLinkUrl, related_link_label as relatedLinkLabel, related_links
     FROM user_repos WHERE user_id = ? ORDER BY added_at DESC
   `);
   return stmt.all(userId);
@@ -197,7 +229,8 @@ export function deleteUserRepo(database, id, userId) {
 
 export function getUserRepoById(database, id, userId) {
   const stmt = database.prepare(`
-    SELECT id, repo_url as repoUrl, name, description, added_at as addedAt
+    SELECT id, repo_url as repoUrl, name, description, added_at as addedAt,
+           related_link_url as relatedLinkUrl, related_link_label as relatedLinkLabel, related_links
     FROM user_repos WHERE id = ? AND user_id = ?
   `);
   return stmt.get(id, userId) || null;
@@ -205,8 +238,17 @@ export function getUserRepoById(database, id, userId) {
 
 export function getUserRepoByName(database, userId, name) {
   const stmt = database.prepare(`
-    SELECT id, repo_url as repoUrl, name, description, added_at as addedAt
+    SELECT id, repo_url as repoUrl, name, description, added_at as addedAt,
+           related_link_url as relatedLinkUrl, related_link_label as relatedLinkLabel, related_links
     FROM user_repos WHERE user_id = ? AND LOWER(name) = LOWER(?)
   `);
   return stmt.get(userId, name) || null;
+}
+
+export function updateUserRepoRelatedLinks(database, id, userId, relatedLinks) {
+  const json = JSON.stringify(Array.isArray(relatedLinks) ? relatedLinks : []);
+  const stmt = database.prepare(`
+    UPDATE user_repos SET related_links = ? WHERE id = ? AND user_id = ?
+  `);
+  return stmt.run(json, id, userId);
 }

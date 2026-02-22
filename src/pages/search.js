@@ -64,11 +64,17 @@ export function renderSearch(params) {
               .map((p) => {
                 const [o, r] = p.name.split('/');
                 const href = `/repo/${encodeURIComponent(o || '')}/${encodeURIComponent(r || p.name)}`;
+                const relatedLinks = p.relatedLinks && Array.isArray(p.relatedLinks) ? p.relatedLinks : [];
+                const relatedLinksHtml =
+                  relatedLinks.length > 0
+                    ? `<p class="search-related-links">${relatedLinks.map((l) => `<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener" class="search-related-link">${escapeHtml(l.label || 'Link')}</a>`).join(' · ')}</p>`
+                    : '';
                 return `
               <li class="package-item">
                 <a href="${href}" class="package-name" data-spa>${escapeHtml(p.name)}</a>
                 <span class="package-meta">Your repo</span>
                 <p class="package-desc">${escapeHtml(p.description || '')}</p>
+                ${relatedLinksHtml}
               </li>
             `;
               })

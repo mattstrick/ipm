@@ -18,7 +18,10 @@ export function parseRepoUrl(input) {
 export async function fetchRepoMetadata(owner, repo) {
   const url = `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
   const res = await fetch(url, {
-    headers: { Accept: 'application/vnd.github.v3+json' },
+    headers: {
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'ipm-repo-fetcher',
+    },
   });
   if (res.status === 404) return null;
   if (!res.ok) throw new Error(`GitHub API: ${res.status}`);

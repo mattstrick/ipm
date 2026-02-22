@@ -583,3 +583,120 @@ input, textarea, select {
   margin-left: 0.35rem;
   vertical-align: middle;
 }
+
+.search-related-links {
+  margin: 0.35rem 0 0;
+  font-size: 0.875rem;
+}
+
+.search-related-link {
+  color: var(--ipm-gray-700);
+}
+
+.search-related-link:hover {
+  color: var(--ipm-red);
+}
+
+.main-content .btn-outline {
+  color: var(--ipm-red);
+  border-color: var(--ipm-red);
+  background: transparent;
+}
+
+.main-content .btn-outline:hover {
+  background: var(--ipm-gray-100);
+}
+
+.related-link-form {
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--ipm-gray-100);
+}
+
+.related-link-form h3 {
+  font-size: 1rem;
+  margin: 0 0 0.25rem;
+}
+
+.form-hint {
+  font-size: 0.875rem;
+  color: var(--ipm-gray-500);
+  margin: 0 0 0.75rem;
+}
+
+.related-link-form .field {
+  margin-bottom: 0.75rem;
+}
+
+.related-link-form .field label {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--ipm-gray-700);
+  margin-bottom: 0.25rem;
+}
+
+.related-link-form .field input {
+  width: 100%;
+  max-width: 400px;
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--ipm-gray-300);
+  border-radius: var(--radius);
+}
+
+.related-link-form .field input:focus {
+  outline: none;
+  border-color: var(--ipm-red);
+}
+
+.related-link-form .error {
+  font-size: 0.875rem;
+  color: #c00;
+  margin: 0.5rem 0;
+}
+
+.related-link-form #related-link-save {
+  margin-top: 0.25rem;
+}
+
+.related-links-list {
+  margin: 1rem 0 0;
+}
+
+.related-links-list .btn {
+  margin-right: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.related-link-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.related-link-row .related-label {
+  width: 140px;
+  padding: 0.4rem 0.5rem;
+  border: 2px solid var(--ipm-gray-300);
+  border-radius: var(--radius);
+}
+
+.related-link-row .related-url {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.4rem 0.5rem;
+  border: 2px solid var(--ipm-gray-300);
+  border-radius: var(--radius);
+}
+
+.related-link-row .related-label:focus,
+.related-link-row .related-url:focus {
+  outline: none;
+  border-color: var(--ipm-red);
+}
+
+.related-link-form #related-link-add {
+  margin-bottom: 0.75rem;
+}
