@@ -31,19 +31,19 @@ function init() {
   main.appendChild(route.render(params));
   app.appendChild(main);
   app.appendChild(renderFooter());
-
-  // Client-side nav for link clicks
-  app.querySelectorAll('a[data-spa]').forEach((link) => {
-    link.addEventListener('click', (e) => {
-      e.preventDefault();
-      const href = link.getAttribute('href');
-      if (href && href.startsWith('/')) {
-        window.history.pushState({}, '', href);
-        init();
-      }
-    });
-  });
 }
+
+// Delegated SPA nav so links added after async content (e.g. search) work
+document.getElementById('app').addEventListener('click', (e) => {
+  const link = e.target.closest('a[data-spa]');
+  if (!link || !link.href) return;
+  const href = link.getAttribute('href');
+  if (href && href.startsWith('/')) {
+    e.preventDefault();
+    window.history.pushState({}, '', href);
+    init();
+  }
+});
 
 window.addEventListener('popstate', init);
 window.addEventListener('DOMContentLoaded', init);
