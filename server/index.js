@@ -1,7 +1,22 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
-import { getDb, searchPackages, getPackageByName, upsertPackage, createUser, getUserByEmail, getUserById } from './db.js';
+import {
+  getDb,
+  searchPackages,
+  getPackageByName,
+  upsertPackage,
+  createUser,
+  getUserByEmail,
+  getUserById,
+  searchUserRepos,
+  getUserRepos,
+  addUserRepo,
+  deleteUserRepo,
+  getUserRepoById,
+  getUserRepoByName,
+} from './db.js';
 import { searchRegistry, getPackageFromRegistry, getPackageDetailsFromRegistry } from './registry.js';
+import { parseRepoUrl, fetchRepoMetadata } from './github.js';
 import {
   hashPassword,
   verifyPassword,
@@ -18,28 +33,25 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(authMiddleware);
 
-app.get('/api/search', async (req, res) => {
+app.get('/api/search', (req, res) => {
   try {
     const q = (req.query.q || '').trim();
     const db = getDb();
-    let results = searchPackages(db, q);
+    const results = [];
 
-    // If no DB results and user searched, fetch from upstream registry and cache
-    if (results.length === 0 && q) {
-      const fromRegistry = await searchRegistry(q, 25);
-      for (const pkg of fromRegistry) {
-        upsertPackage(db, pkg);
+    if (req.user) {
+      const fromRepos = searchUserRepos(db, req.user.id, q, 25);
+      for (const r of fromRepos) {
+        results.push({
+          name: r.name,
+          description: r.description || '',
+          version: null,
+          weeklyDownloads: null,
+          source: 'repo',
+          repoUrl: r.repoUrl,
+          id: r.id,
+        });
       }
-      results = searchPackages(db, q);
-    }
-
-    // If still empty (e.g. no query), seed a few from registry
-    if (results.length === 0) {
-      const seed = await searchRegistry('react', 10);
-      for (const pkg of seed) {
-        upsertPackage(db, pkg);
-      }
-      results = searchPackages(db, q);
     }
 
     res.json(results);
@@ -107,6 +119,79 @@ app.post('/api/signin', async (req, res) => {
 app.post('/api/signout', (req, res) => {
   clearAuthCookie(res);
   res.json({ ok: true });
+});
+
+app.get('/api/repos', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Not signed in' });
+  try {
+    const db = getDb();
+    const repos = getUserRepos(db, req.user.id);
+    res.json(repos);
+  } catch (err) {
+    console.error('List repos error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/repos', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Not signed in' });
+  try {
+    const { url } = req.body || {};
+    const input = (url || req.body?.repoUrl || '').trim();
+    if (!input) return res.status(400).json({ error: 'Repository URL or owner/repo is required' });
+    const parsed = parseRepoUrl(input);
+    if (!parsed) return res.status(400).json({ error: 'Invalid GitHub URL or owner/repo' });
+    let meta;
+    try {
+      meta = await fetchRepoMetadata(parsed.owner, parsed.repo);
+    } catch (err) {
+      return res.status(400).json({ error: err.message || 'Could not fetch repo from GitHub' });
+    }
+    if (!meta) return res.status(404).json({ error: 'Repository not found' });
+    const db = getDb();
+    const existing = getUserRepoByName(db, req.user.id, meta.name);
+    if (existing) return res.status(409).json({ error: 'You already added this repo' });
+    const id = addUserRepo(db, {
+      userId: req.user.id,
+      repoUrl: meta.repoUrl,
+      name: meta.name,
+      description: meta.description,
+    });
+    const repos = getUserRepos(db, req.user.id);
+    const added = repos.find((r) => r.id === id);
+    res.status(201).json(added || { id, repoUrl: meta.repoUrl, name: meta.name, description: meta.description });
+  } catch (err) {
+    console.error('Add repo error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/repos/:id', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Not signed in' });
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) return res.status(400).json({ error: 'Invalid id' });
+    const db = getDb();
+    deleteUserRepo(db, id, req.user.id);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('Delete repo error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/repo/:owner/:repo', (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Not signed in' });
+  try {
+    const name = `${req.params.owner}/${req.params.repo}`;
+    const db = getDb();
+    const repo = getUserRepoByName(db, req.user.id, name);
+    if (!repo) return res.status(404).json({ error: 'Repo not found in your list' });
+    res.json(repo);
+  } catch (err) {
+    console.error('Get repo error:', err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.get('/api/package/:name', async (req, res) => {

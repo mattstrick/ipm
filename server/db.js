@@ -42,6 +42,18 @@ function initSchema(database) {
       created_at INTEGER NOT NULL
     );
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(email));
+
+    CREATE TABLE IF NOT EXISTS user_repos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      repo_url TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT,
+      added_at INTEGER NOT NULL,
+      FOREIGN KEY (user_id) REFERENCES users(id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_user_repos_user_id ON user_repos(user_id);
+    CREATE INDEX IF NOT EXISTS idx_user_repos_name ON user_repos(LOWER(name));
   `);
   try {
     database.prepare('SELECT published_at FROM packages LIMIT 1').run();
@@ -140,4 +152,61 @@ export function getUserById(database, id) {
   const row = stmt.get(id);
   if (!row) return null;
   return { id: row.id, email: row.email, name: row.name, createdAt: row.createdAt };
+}
+
+export function searchUserRepos(database, userId, query, limit = 50) {
+  const q = query.trim().toLowerCase();
+  if (!q) {
+    const stmt = database.prepare(`
+      SELECT id, repo_url as repoUrl, name, description, added_at as addedAt
+      FROM user_repos WHERE user_id = ? ORDER BY added_at DESC LIMIT ?
+    `);
+    return stmt.all(userId, limit);
+  }
+  const pattern = `%${q}%`;
+  const stmt = database.prepare(`
+    SELECT id, repo_url as repoUrl, name, description, added_at as addedAt
+    FROM user_repos
+    WHERE user_id = ? AND (LOWER(name) LIKE ? OR (description IS NOT NULL AND LOWER(description) LIKE ?))
+    ORDER BY added_at DESC LIMIT ?
+  `);
+  return stmt.all(userId, pattern, pattern, limit);
+}
+
+export function getUserRepos(database, userId) {
+  const stmt = database.prepare(`
+    SELECT id, repo_url as repoUrl, name, description, added_at as addedAt
+    FROM user_repos WHERE user_id = ? ORDER BY added_at DESC
+  `);
+  return stmt.all(userId);
+}
+
+export function addUserRepo(database, { userId, repoUrl, name, description }) {
+  const stmt = database.prepare(`
+    INSERT INTO user_repos (user_id, repo_url, name, description, added_at)
+    VALUES (?, ?, ?, ?, ?)
+  `);
+  const result = stmt.run(userId, repoUrl, name, description || null, Date.now());
+  return result.lastInsertRowid;
+}
+
+export function deleteUserRepo(database, id, userId) {
+  const stmt = database.prepare('DELETE FROM user_repos WHERE id = ? AND user_id = ?');
+  return stmt.run(id, userId);
+}
+
+export function getUserRepoById(database, id, userId) {
+  const stmt = database.prepare(`
+    SELECT id, repo_url as repoUrl, name, description, added_at as addedAt
+    FROM user_repos WHERE id = ? AND user_id = ?
+  `);
+  return stmt.get(id, userId) || null;
+}
+
+export function getUserRepoByName(database, userId, name) {
+  const stmt = database.prepare(`
+    SELECT id, repo_url as repoUrl, name, description, added_at as addedAt
+    FROM user_repos WHERE user_id = ? AND LOWER(name) = LOWER(?)
+  `);
+  return stmt.get(userId, name) || null;
 }

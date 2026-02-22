@@ -21,6 +21,7 @@ export function renderHeader() {
     <div class="header-actions" id="header-actions">
       ${user
         ? `
+        <a href="/repos" class="btn btn-outline" data-spa>Your repos</a>
         <span class="header-user">${escapeHtml(user.name || user.email)}</span>
         <button type="button" class="btn btn-outline" id="header-signout">Sign out</button>
       `

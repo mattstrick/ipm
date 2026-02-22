@@ -1,10 +1,5 @@
 import { searchPackages } from '../api.js';
-
-function formatDownloads(n) {
-  if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
-  if (n >= 1e3) return (n / 1e3).toFixed(1) + 'K';
-  return String(n);
-}
+import { getCurrentUser } from '../auth.js';
 
 function escapeHtml(s) {
   if (s == null) return '';
@@ -24,9 +19,9 @@ export function renderSearch(params) {
           <input
             type="search"
             name="q"
-            placeholder="Search packages"
+            placeholder="Search your repos"
             value="${escapeHtml(q)}"
-            aria-label="Search packages"
+            aria-label="Search your repos"
             autocomplete="off"
           />
         </form>
@@ -55,25 +50,28 @@ export function renderSearch(params) {
     try {
       const results = await searchPackages(q);
       if (results.length === 0) {
+        const user = getCurrentUser();
         resultsEl.innerHTML = `
           <div class="empty-state">
-            <p><strong>No packages found</strong></p>
-            <p>Try a different search term or browse the homepage.</p>
+            <p><strong>No repos found</strong></p>
+            <p>${user ? 'Try a different search or <a href="/repos" data-spa>add more repos</a>.' : '<a href="/signin" data-spa>Sign in</a> to search your repos.'}</p>
           </div>
         `;
       } else {
         resultsEl.innerHTML = `
           <ul class="package-list">
             ${results
-              .map(
-                (p) => `
+              .map((p) => {
+                const [o, r] = p.name.split('/');
+                const href = `/repo/${encodeURIComponent(o || '')}/${encodeURIComponent(r || p.name)}`;
+                return `
               <li class="package-item">
-                <a href="/package/${encodeURIComponent(p.name)}" class="package-name" data-spa>${escapeHtml(p.name)}</a>
-                <span class="package-meta">${escapeHtml(p.version || '')} · ${formatDownloads(p.weeklyDownloads || 0)} weekly downloads</span>
+                <a href="${href}" class="package-name" data-spa>${escapeHtml(p.name)}</a>
+                <span class="package-meta">Your repo</span>
                 <p class="package-desc">${escapeHtml(p.description || '')}</p>
               </li>
-            `
-              )
+            `;
+              })
               .join('')}
           </ul>
         `;
