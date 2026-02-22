@@ -62,8 +62,15 @@ export function renderSearch(params) {
           <ul class="package-list">
             ${results
               .map((p) => {
-                const packageName = packageNameFromRepoFullName(p.name);
-                const href = packageName ? `/package/${encodeURIComponent(packageName)}` : '#';
+                const isRepo = p.source === 'repo' || p.source === 'public';
+                const [owner, repo] = (p.name || '').split('/');
+                const href =
+                  isRepo && owner && repo
+                    ? `/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`
+                    : (() => {
+                        const packageName = packageNameFromRepoFullName(p.name);
+                        return packageName ? `/package/${encodeURIComponent(packageName)}` : '#';
+                      })();
                 const relatedLinks = p.relatedLinks && Array.isArray(p.relatedLinks) ? p.relatedLinks : [];
                 const relatedLinksHtml =
                   relatedLinks.length > 0
