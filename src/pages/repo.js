@@ -1,3 +1,4 @@
+import { marked } from 'marked';
 import { getRepo } from '../api.js';
 
 function escapeHtml(s) {
@@ -5,6 +6,15 @@ function escapeHtml(s) {
   const div = document.createElement('div');
   div.textContent = s;
   return div.innerHTML;
+}
+
+function renderMarkdown(md) {
+  if (md == null || md === '') return '';
+  try {
+    return marked.parse(String(md), { async: false });
+  } catch {
+    return escapeHtml(md);
+  }
 }
 
 function formatDate(ms) {
@@ -61,7 +71,7 @@ export function renderRepo(params) {
             <p><a href="${escapeHtml(r.repoUrl)}" target="_blank" rel="noopener" class="btn btn-primary">Open on GitHub</a></p>
             ${r.readme ? `
             <h2>Readme</h2>
-            <div class="readme-content">${escapeHtml(r.readme).replace(/\n/g, '<br>')}</div>
+            <div class="readme-content">${renderMarkdown(r.readme)}</div>
             ` : ''}
           </div>
           <aside>
