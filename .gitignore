@@ -4,3 +4,4 @@ data/*.db
 .env
 .env.*
 !.env.example
+REPO_LANGUAGES.md

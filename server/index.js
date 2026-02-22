@@ -16,6 +16,7 @@ import {
   getUserRepoByName,
   updateUserRepoRelatedLinks,
   parseRelatedLinks,
+  getLanguages,
 } from './db.js';
 import { searchRegistry, getPackageFromRegistry, getPackageDetailsFromRegistry } from './registry.js';
 import { parseRepoUrl, fetchRepoMetadata } from './github.js';
@@ -34,6 +35,16 @@ const PORT = process.env.PORT || 3001;
 app.use(express.json());
 app.use(cookieParser());
 app.use(authMiddleware);
+
+app.get('/api/languages', (req, res) => {
+  try {
+    const db = getDb();
+    res.json(getLanguages(db));
+  } catch (err) {
+    console.error('Languages error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
 
 app.get('/api/search', (req, res) => {
   try {

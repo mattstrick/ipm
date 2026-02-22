@@ -54,7 +54,16 @@ function initSchema(database) {
     );
     CREATE INDEX IF NOT EXISTS idx_user_repos_user_id ON user_repos(user_id);
     CREATE INDEX IF NOT EXISTS idx_user_repos_name ON user_repos(LOWER(name));
+
+    CREATE TABLE IF NOT EXISTS languages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      code TEXT UNIQUE NOT NULL,
+      name TEXT NOT NULL,
+      display_order INTEGER DEFAULT 0
+    );
+    CREATE INDEX IF NOT EXISTS idx_languages_code ON languages(LOWER(code));
   `);
+  seedLanguages(database);
   try {
     database.prepare('SELECT published_at FROM packages LIMIT 1').run();
   } catch {
@@ -71,6 +80,50 @@ function initSchema(database) {
   } catch {
     database.exec('ALTER TABLE user_repos ADD COLUMN related_links TEXT');
   }
+}
+
+const DEFAULT_LANGUAGES = [
+  { code: 'javascript', name: 'JavaScript', display_order: 1 },
+  { code: 'typescript', name: 'TypeScript', display_order: 2 },
+  { code: 'python', name: 'Python', display_order: 3 },
+  { code: 'kotlin', name: 'Kotlin', display_order: 4 },
+  { code: 'go', name: 'Go', display_order: 5 },
+  { code: 'rust', name: 'Rust', display_order: 6 },
+  { code: 'ruby', name: 'Ruby', display_order: 7 },
+  { code: 'php', name: 'PHP', display_order: 8 },
+  { code: 'java', name: 'Java', display_order: 9 },
+  { code: 'csharp', name: 'C#', display_order: 10 },
+  { code: 'swift', name: 'Swift', display_order: 11 },
+  { code: 'elixir', name: 'Elixir', display_order: 12 },
+  { code: 'clojure', name: 'Clojure', display_order: 13 },
+  { code: 'haskell', name: 'Haskell', display_order: 14 },
+];
+
+function seedLanguages(database) {
+  const stmt = database.prepare(`
+    INSERT OR IGNORE INTO languages (code, name, display_order) VALUES (?, ?, ?)
+  `);
+  for (const lang of DEFAULT_LANGUAGES) {
+    stmt.run(lang.code, lang.name, lang.display_order);
+  }
+}
+
+export function getLanguages(database) {
+  const stmt = database.prepare(`
+    SELECT id, code, name, display_order as displayOrder
+    FROM languages
+    ORDER BY display_order ASC, name ASC
+  `);
+  return stmt.all();
+}
+
+export function getLanguageByCode(database, code) {
+  const stmt = database.prepare(`
+    SELECT id, code, name, display_order as displayOrder
+    FROM languages
+    WHERE LOWER(code) = LOWER(?)
+  `);
+  return stmt.get(code) || null;
 }
 
 /** Normalize related links: prefer related_links JSON array; fallback to single related_link_url/label */
