@@ -1,6 +1,6 @@
 import express from 'express';
 import { getDb, searchPackages, getPackageByName, upsertPackage } from './db.js';
-import { searchNpm, getPackageFromNpm } from './npm.js';
+import { searchRegistry, getPackageFromRegistry } from './registry.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -11,18 +11,18 @@ app.get('/api/search', async (req, res) => {
     const db = getDb();
     let results = searchPackages(db, q);
 
-    // If no DB results and user searched, fetch from npm and cache
+    // If no DB results and user searched, fetch from upstream registry and cache
     if (results.length === 0 && q) {
-      const fromNpm = await searchNpm(q, 25);
-      for (const pkg of fromNpm) {
+      const fromRegistry = await searchRegistry(q, 25);
+      for (const pkg of fromRegistry) {
         upsertPackage(db, pkg);
       }
       results = searchPackages(db, q);
     }
 
-    // If still empty (e.g. no query), seed a few from npm
+    // If still empty (e.g. no query), seed a few from registry
     if (results.length === 0) {
-      const seed = await searchNpm('react', 10);
+      const seed = await searchRegistry('react', 10);
       for (const pkg of seed) {
         upsertPackage(db, pkg);
       }
@@ -43,11 +43,11 @@ app.get('/api/package/:name', async (req, res) => {
     let pkg = getPackageByName(db, name);
 
     if (!pkg) {
-      const fromNpm = await getPackageFromNpm(name);
-      if (!fromNpm) {
+      const fromRegistry = await getPackageFromRegistry(name);
+      if (!fromRegistry) {
         return res.status(404).json({ error: 'Package not found' });
       }
-      upsertPackage(db, fromNpm);
+      upsertPackage(db, fromRegistry);
       pkg = getPackageByName(db, name);
     }
 

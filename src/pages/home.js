@@ -4,7 +4,7 @@ export function renderHome() {
     <section class="hero">
       <h1>Build amazing things</h1>
       <p class="subtitle">
-        We're the company behind the npm Registry and npm CLI. We offer those to the community for free,
+        We're the company behind the ipm registry and ipm CLI. We offer those to the community for free,
         but our day job is building useful tools for developers like you.
       </p>
       <div class="hero-cta">
@@ -16,7 +16,7 @@ export function renderHome() {
     <section class="section">
       <h2>Take your JavaScript development up a notch</h2>
       <p>
-        Get started today for free, or step up to npm Pro to enjoy a premium JavaScript development experience,
+        Get started today for free, or step up to ipm Pro to enjoy a premium JavaScript development experience,
         with features like private packages.
       </p>
     </section>
@@ -24,15 +24,15 @@ export function renderHome() {
     <section class="section">
       <h2>Bring the best of open source to you</h2>
       <p>
-        Relied upon by millions of developers worldwide, the npm Registry has become the center of JavaScript
+        Relied upon by millions of developers worldwide, the ipm registry has become the center of JavaScript
         code sharing, and with more than two million packages, the largest software registry in the world.
       </p>
     </section>
   `;
   section.querySelectorAll('.btn-outline').forEach((btn) => {
     btn.style.background = 'transparent';
-    btn.style.color = 'var(--npm-red)';
-    btn.style.borderColor = 'var(--npm-red)';
+    btn.style.color = 'var(--ipm-red)';
+    btn.style.borderColor = 'var(--ipm-red)';
   });
   return section;
 }

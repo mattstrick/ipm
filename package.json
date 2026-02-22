@@ -1,7 +1,7 @@
 {
   "name": "ipm",
   "version": "1.0.0",
-  "description": "A clone of npmjs.org - package registry UI",
+  "description": "ipm — package registry UI",
   "type": "module",
   "scripts": {
     "dev": "vite",

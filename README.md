@@ -1,20 +1,20 @@
 # ipm
 
-A clone of [npmjs.org](https://www.npmjs.com) — same look and feel, with optional **real data** from the npm registry stored in a local database.
+A package registry UI — same look and feel as classic registry sites, with optional **real data** from a public JavaScript package registry stored in a local database.
 
 ## What’s included
 
-- **Home** – Hero and marketing copy in npm style
-- **Search** – Search bar and package list (from API/database or npm registry)
-- **Package** – Package detail page with install command, readme, and sidebar metadata
+- **Home** – Hero and marketing copy in ipm style
+- **Search** – Search bar and package list (from API/database or upstream registry)
+- **Package** – Package detail page with install command (`ipm install`), readme, and sidebar metadata
 
-Design uses npm’s red/black palette, header with search, and familiar layout.
+Design uses ipm’s red/black palette, header with search, and familiar layout.
 
 ## Run locally
 
-### With real data (database + npm registry)
+### With real data (database + registry)
 
-1. Install and start the **API server** (Express + SQLite). It fetches from the npm registry and caches results in `data/packages.db`:
+1. Install and start the **API server** (Express + SQLite). It fetches from the public registry and caches results in `data/packages.db`:
 
    ```bash
    npm install
@@ -41,7 +41,7 @@ If you don’t run the API server, the search and package pages will show an err
 
 - **Location:** `data/packages.db` (SQLite). Created automatically on first request.
 - **Custom path:** set `IPM_DB_PATH` to a full path to the DB file.
-- **Behavior:** Search and package-detail requests hit the npm registry when data isn’t in the DB; results are cached so repeat requests are fast.
+- **Behavior:** Search and package-detail requests hit the upstream registry when data isn’t in the DB; results are cached so repeat requests are fast.
 
 ## Build
 
@@ -55,8 +55,8 @@ For production you’d run the API server separately and point the frontend at i
 ## Tech
 
 - **Frontend:** [Vite](https://vitejs.dev/), vanilla JS, no framework
-- **Backend:** Express, [better-sqlite3](https://github.com/WiseLibs/better-sqlite3), npm registry API
-- **Data:** SQLite database; data is fetched from [registry.npmjs.org](https://registry.npmjs.org/) and cached
+- **Backend:** Express, [better-sqlite3](https://github.com/WiseLibs/better-sqlite3), public registry API
+- **Data:** SQLite database; data is fetched from the public JavaScript package registry and cached
 
 ## License
 

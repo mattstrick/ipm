@@ -59,7 +59,7 @@ export function renderPackage(params) {
         <div class="package-layout">
           <div class="package-readme">
             <h2>Install</h2>
-            <pre><code>npm install ${escapeHtml(pkg.name)}</code></pre>
+            <pre><code>ipm install ${escapeHtml(pkg.name)}</code></pre>
             <h2>About</h2>
             <p>${escapeHtml(pkg.description || 'No description provided.')}</p>
             ${pkg.readme ? `<div class="readme-content">${escapeHtml(pkg.readme).replace(/\n/g, '<br>')}</div>` : ''}
@@ -67,7 +67,7 @@ export function renderPackage(params) {
           <aside>
             <div class="sidebar-box">
               <h3>Install</h3>
-              <div class="command">npm install ${escapeHtml(pkg.name)}</div>
+              <div class="command">ipm install ${escapeHtml(pkg.name)}</div>
             </div>
             <div class="sidebar-box">
               <h3>Metadata</h3>
@@ -84,7 +84,7 @@ export function renderPackage(params) {
       contentEl.innerHTML = `
         <div class="empty-state">
           <p><strong>Failed to load package</strong></p>
-          <p>Make sure the API server is running: <code>npm run server</code></p>
+          <p>Make sure the API server is running: <code>npm run server</code> from the project root</p>
           <p>${escapeHtml(err.message)}</p>
         </div>
       `;

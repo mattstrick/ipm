@@ -82,7 +82,7 @@ export function renderSearch(params) {
       resultsEl.innerHTML = `
         <div class="empty-state">
           <p><strong>Search failed</strong></p>
-          <p>Make sure the API server is running: <code>npm run server</code></p>
+          <p>Make sure the API server is running: <code>npm run server</code> from the project root</p>
           <p>${escapeHtml(err.message)}</p>
         </div>
       `;

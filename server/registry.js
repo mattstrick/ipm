@@ -1,9 +1,10 @@
+// Upstream JavaScript package registry (public API)
 const REGISTRY = 'https://registry.npmjs.org';
 
-export async function searchNpm(text, size = 20) {
+export async function searchRegistry(text, size = 20) {
   const url = `${REGISTRY}/-/v1/search?text=${encodeURIComponent(text)}&size=${size}`;
   const res = await fetch(url);
-  if (!res.ok) throw new Error(`npm search failed: ${res.status}`);
+  if (!res.ok) throw new Error(`Registry search failed: ${res.status}`);
   const data = await res.json();
   return (data.objects || []).map((o) => {
     const p = o.package || {};
@@ -16,11 +17,11 @@ export async function searchNpm(text, size = 20) {
   });
 }
 
-export async function getPackageFromNpm(name) {
+export async function getPackageFromRegistry(name) {
   const url = `${REGISTRY}/${encodeURIComponent(name)}`;
   const res = await fetch(url);
   if (res.status === 404) return null;
-  if (!res.ok) throw new Error(`npm package fetch failed: ${res.status}`);
+  if (!res.ok) throw new Error(`Package fetch failed: ${res.status}`);
   const data = await res.json();
   const latest = data['dist-tags']?.latest;
   const versionData = latest && data.versions ? data.versions[latest] : null;

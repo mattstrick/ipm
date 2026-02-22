@@ -3,7 +3,7 @@ export function renderFooter() {
   footer.className = 'site-footer';
   footer.innerHTML = `
     <p>
-      <strong>ipm</strong> — a clone of npm. You're building amazing things.
+      <strong>ipm</strong> — You're building amazing things.
     </p>
     <p>
       <a href="/" data-spa>Support</a> · <a href="/" data-spa>Documentation</a> · <a href="/" data-spa>Status</a>
