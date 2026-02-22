@@ -35,6 +35,8 @@ export async function getPackageFromRegistry(name) {
     if (typeof repo === 'string') repositoryUrl = repo;
     else if (repo.url) repositoryUrl = repo.url.replace(/^git\+/, '').replace(/\.git$/, '');
   }
+  const time = data.time || {};
+  const publishedAt = latest ? time[latest] : time.modified || null;
   return {
     name: data.name,
     description: desc,
@@ -44,6 +46,7 @@ export async function getPackageFromRegistry(name) {
     license,
     repositoryUrl,
     homepage: versionData?.homepage ?? data.homepage ?? null,
+    publishedAt,
   };
 }
 

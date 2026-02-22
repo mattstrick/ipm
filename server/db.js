@@ -29,6 +29,7 @@ function initSchema(database) {
       license TEXT,
       repository_url TEXT,
       homepage TEXT,
+      published_at TEXT,
       fetched_at INTEGER
     );
     CREATE INDEX IF NOT EXISTS idx_packages_name_lower ON packages(LOWER(name));
@@ -42,6 +43,11 @@ function initSchema(database) {
     );
     CREATE UNIQUE INDEX IF NOT EXISTS idx_users_email_lower ON users(LOWER(email));
   `);
+  try {
+    database.prepare('SELECT published_at FROM packages LIMIT 1').run();
+  } catch {
+    database.exec('ALTER TABLE packages ADD COLUMN published_at TEXT');
+  }
 }
 
 export function searchPackages(database, query, limit = 50) {
@@ -69,7 +75,8 @@ export function searchPackages(database, query, limit = 50) {
 export function getPackageByName(database, name) {
   const stmt = database.prepare(`
     SELECT name, description, version, weekly_downloads as weeklyDownloads,
-           readme, license as license, repository_url as repositoryUrl, homepage, fetched_at as fetchedAt
+           readme, license as license, repository_url as repositoryUrl, homepage,
+           published_at as publishedAt, fetched_at as fetchedAt
     FROM packages
     WHERE LOWER(name) = LOWER(?)
   `);
@@ -80,8 +87,8 @@ export function getPackageByName(database, name) {
 
 export function upsertPackage(database, pkg) {
   const stmt = database.prepare(`
-    INSERT INTO packages (name, description, version, weekly_downloads, readme, license, repository_url, homepage, fetched_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO packages (name, description, version, weekly_downloads, readme, license, repository_url, homepage, published_at, fetched_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(name) DO UPDATE SET
       description = excluded.description,
       version = excluded.version,
@@ -90,6 +97,7 @@ export function upsertPackage(database, pkg) {
       license = excluded.license,
       repository_url = excluded.repository_url,
       homepage = excluded.homepage,
+      published_at = excluded.published_at,
       fetched_at = excluded.fetched_at
   `);
   const now = Date.now();
@@ -102,6 +110,7 @@ export function upsertPackage(database, pkg) {
     pkg.license ?? null,
     pkg.repositoryUrl ?? null,
     pkg.homepage ?? null,
+    pkg.publishedAt ?? null,
     now
   );
 }

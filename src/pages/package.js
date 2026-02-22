@@ -6,6 +6,17 @@ function formatDownloads(n) {
   return String(n);
 }
 
+function formatPublished(isoString) {
+  if (!isoString) return '—';
+  try {
+    const d = new Date(isoString);
+    if (Number.isNaN(d.getTime())) return '—';
+    return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch {
+    return '—';
+  }
+}
+
 function escapeHtml(s) {
   if (s == null) return '';
   const div = document.createElement('div');
@@ -78,6 +89,7 @@ export function renderPackage(params) {
             <div class="sidebar-box">
               <h3>Metadata</h3>
               <div class="meta-row"><strong>Version</strong> ${escapeHtml(pkg.version || '')}</div>
+              <div class="meta-row"><strong>Published</strong> ${formatPublished(pkg.publishedAt)}</div>
               <div class="meta-row"><strong>Weekly downloads</strong> ${formatDownloads(pkg.weeklyDownloads || 0)}</div>
               <div class="meta-row"><strong>License</strong> ${escapeHtml(license)}</div>
               ${pkg.repositoryUrl ? `<div class="meta-row"><strong>Repository</strong> <a href="${escapeHtml(pkg.repositoryUrl)}" target="_blank" rel="noopener">Link</a></div>` : ''}
