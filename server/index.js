@@ -179,6 +179,52 @@ app.post('/api/repos', async (req, res) => {
   }
 });
 
+app.post('/api/repos/add-from-conversions', async (req, res) => {
+  if (!req.user) return res.status(401).json({ error: 'Not signed in' });
+  try {
+    const repoNames = getReposFromConversions();
+    const db = getDb();
+    const added = [];
+    const skipped = [];
+    const errors = [];
+    for (const name of repoNames) {
+      const parsed = parseRepoUrl(name);
+      if (!parsed) {
+        errors.push({ name, error: 'Invalid owner/repo format' });
+        continue;
+      }
+      if (getUserRepoByName(db, req.user.id, name)) {
+        skipped.push(name);
+        continue;
+      }
+      let meta;
+      try {
+        meta = await fetchRepoMetadata(parsed.owner, parsed.repo);
+      } catch (err) {
+        errors.push({ name, error: err.message || 'GitHub fetch failed' });
+        continue;
+      }
+      if (!meta) {
+        errors.push({ name, error: 'Repo not found' });
+        continue;
+      }
+      const id = addUserRepo(db, {
+        userId: req.user.id,
+        repoUrl: meta.repoUrl,
+        name: meta.name,
+        description: meta.description,
+      });
+      const repos = getUserRepos(db, req.user.id);
+      const row = repos.find((r) => r.id === id);
+      added.push(row || { id, name: meta.name, repoUrl: meta.repoUrl, description: meta.description });
+    }
+    res.json({ added, skipped, errors });
+  } catch (err) {
+    console.error('Add from conversions error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.delete('/api/repos/:id', (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'Not signed in' });
   try {

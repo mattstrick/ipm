@@ -31,15 +31,6 @@ export function renderRepo(params) {
     return (r.relatedLinks && Array.isArray(r.relatedLinks)) ? r.relatedLinks : [];
   }
 
-  function renderRelatedLinks(links) {
-    if (!links.length) return '';
-    return `
-      <p class="related-links-list">
-        ${links.map((l) => `<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener" class="btn btn-outline">${escapeHtml(l.label || 'Link')}</a>`).join(' ')}
-      </p>
-    `;
-  }
-
   (async () => {
     try {
       const r = await getRepo(owner, repo);
@@ -68,7 +59,6 @@ export function renderRepo(params) {
             <h2>GitHub repository</h2>
             <p>This is a GitHub repo you added to your registry. It appears first when you search for it.</p>
             <p><a href="${escapeHtml(r.repoUrl)}" target="_blank" rel="noopener" class="btn btn-primary">Open on GitHub</a></p>
-            ${renderRelatedLinks(relatedLinks)}
           </div>
           <aside>
             <div class="sidebar-box">
