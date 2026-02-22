@@ -19,9 +19,9 @@ export function renderSearch(params) {
           <input
             type="search"
             name="q"
-            placeholder="Search your repos"
+            placeholder="Search repos"
             value="${escapeHtml(q)}"
-            aria-label="Search your repos"
+            aria-label="Search repos"
             autocomplete="off"
           />
         </form>
@@ -54,7 +54,7 @@ export function renderSearch(params) {
         resultsEl.innerHTML = `
           <div class="empty-state">
             <p><strong>No repos found</strong></p>
-            <p>${user ? 'Try a different search or <a href="/repos" data-spa>add more repos</a>.' : '<a href="/signin" data-spa>Sign in</a> to search your repos.'}</p>
+            <p>${user ? 'Try a different search or <a href="/repos" data-spa>add more repos</a>.' : 'Try a different search, or <a href="/signin" data-spa>sign in</a> to search your own repos.'}</p>
           </div>
         `;
       } else {
@@ -69,10 +69,11 @@ export function renderSearch(params) {
                   relatedLinks.length > 0
                     ? `<p class="search-related-links">${relatedLinks.map((l) => `<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener" class="search-related-link">${escapeHtml(l.label || 'Link')}</a>`).join(' · ')}</p>`
                     : '';
+                const metaLabel = p.source === 'public' ? 'Repo' : 'Your repo';
                 return `
               <li class="package-item">
                 <a href="${href}" class="package-name" data-spa>${escapeHtml(p.name)}</a>
-                <span class="package-meta">Your repo</span>
+                <span class="package-meta">${escapeHtml(metaLabel)}</span>
                 <p class="package-desc">${escapeHtml(p.description || '')}</p>
                 ${relatedLinksHtml}
               </li>

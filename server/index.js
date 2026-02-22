@@ -47,7 +47,7 @@ app.get('/api/languages', (req, res) => {
 
 app.get('/api/search', (req, res) => {
   try {
-    const q = (req.query.q || '').trim();
+    const q = (req.query.q || '').trim().toLowerCase();
     const db = getDb();
     const results = [];
 
@@ -63,6 +63,28 @@ app.get('/api/search', (req, res) => {
           repoUrl: r.repoUrl,
           id: r.id,
           relatedLinks: getRelatedLinksForRepo(r.name),
+        });
+      }
+    } else {
+      const repoNames = getReposFromConversions();
+      const filtered = q
+        ? repoNames.filter((name) => {
+            const nameLower = name.toLowerCase();
+            const pkgLower = packageNameFromRepoFullName(name).toLowerCase();
+            return nameLower.includes(q) || pkgLower.includes(q);
+          })
+        : repoNames;
+      for (const name of filtered.slice(0, 25)) {
+        const [owner, repo] = name.split('/');
+        results.push({
+          name,
+          description: '',
+          version: null,
+          weeklyDownloads: null,
+          source: 'public',
+          repoUrl: `https://github.com/${owner}/${repo}`,
+          id: null,
+          relatedLinks: getRelatedLinksForRepo(name),
         });
       }
     }
@@ -240,20 +262,52 @@ app.delete('/api/repos/:id', (req, res) => {
 });
 
 app.get('/api/repo/:owner/:repo', async (req, res) => {
-  if (!req.user) return res.status(401).json({ error: 'Not signed in' });
   try {
     const name = `${req.params.owner}/${req.params.repo}`;
     const db = getDb();
-    const row = getUserRepoByName(db, req.user.id, name);
-    if (!row) return res.status(404).json({ error: 'Repo not found in your list' });
-    let readme = null;
-    try {
-      readme = await fetchRepoReadme(req.params.owner, req.params.repo);
-    } catch {
-      // leave readme null on fetch error
+
+    if (req.user) {
+      const row = getUserRepoByName(db, req.user.id, name);
+      if (row) {
+        let readme = null;
+        try {
+          readme = await fetchRepoReadme(req.params.owner, req.params.repo);
+        } catch {
+          // leave readme null on fetch error
+        }
+        const repo = { ...row, relatedLinks: getRelatedLinksForRepo(name), readme };
+        return res.json(repo);
+      }
     }
-    const repo = { ...row, relatedLinks: getRelatedLinksForRepo(name), readme };
-    res.json(repo);
+
+    const conversionsRepos = getReposFromConversions();
+    if (conversionsRepos.includes(name)) {
+      let meta;
+      try {
+        meta = await fetchRepoMetadata(req.params.owner, req.params.repo);
+      } catch (err) {
+        return res.status(404).json({ error: err.message || 'Repo not found' });
+      }
+      if (!meta) return res.status(404).json({ error: 'Repo not found' });
+      let readme = null;
+      try {
+        readme = await fetchRepoReadme(req.params.owner, req.params.repo);
+      } catch {
+        // leave readme null
+      }
+      const repo = {
+        name: meta.name,
+        repoUrl: meta.repoUrl,
+        description: meta.description,
+        addedAt: null,
+        relatedLinks: getRelatedLinksForRepo(name),
+        readme,
+      };
+      return res.json(repo);
+    }
+
+    if (!req.user) return res.status(401).json({ error: 'Not signed in' });
+    return res.status(404).json({ error: 'Repo not found in your list' });
   } catch (err) {
     console.error('Get repo error:', err);
     res.status(500).json({ error: err.message });
@@ -281,6 +335,14 @@ app.get('/api/package/:name', async (req, res) => {
             const [owner, repo] = match.name.split('/');
             return res.json({ isRepo: true, owner, repo });
           }
+        }
+        const conversionsRepos = getReposFromConversions();
+        const publicMatch = conversionsRepos.find(
+          (fullName) => packageNameFromRepoFullName(fullName) === name
+        );
+        if (publicMatch) {
+          const [owner, repo] = publicMatch.split('/');
+          return res.json({ isRepo: true, owner, repo });
         }
         return res.status(404).json({ error: 'Package not found' });
       }
