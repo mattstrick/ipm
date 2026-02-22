@@ -1,3 +1,4 @@
+import { marked } from 'marked';
 import { getPackage, getPackageDetails, getRepo } from '../api.js';
 
 function formatDownloads(n) {
@@ -22,6 +23,15 @@ function escapeHtml(s) {
   const div = document.createElement('div');
   div.textContent = s;
   return div.innerHTML;
+}
+
+function renderMarkdown(md) {
+  if (md == null || md === '') return '';
+  try {
+    return marked.parse(String(md), { async: false });
+  } catch {
+    return escapeHtml(md);
+  }
 }
 
 function formatDate(ms) {
@@ -106,12 +116,14 @@ export function renderPackage(params) {
       }
 
       const license = pkg.license || '—';
+      const aboutHtml = renderMarkdown(pkg.description || 'No description provided.');
+      const readmeContentHtml = pkg.readme ? renderMarkdown(pkg.readme) : '';
       const readmeHtml = `
         <h2>Install</h2>
         <pre><code>ipm install ${escapeHtml(pkg.name)}</code></pre>
         <h2>About</h2>
-        <p>${escapeHtml(pkg.description || 'No description provided.')}</p>
-        ${pkg.readme ? `<div class="readme-content">${escapeHtml(pkg.readme).replace(/\n/g, '<br>')}</div>` : ''}
+        <div class="readme-content about-content">${aboutHtml}</div>
+        ${readmeContentHtml ? `<div class="readme-content">${readmeContentHtml}</div>` : ''}
       `;
 
       contentEl.innerHTML = `
