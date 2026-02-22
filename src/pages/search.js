@@ -1,4 +1,4 @@
-import { searchPackages } from '../api.js';
+import { searchPackages, packageNameFromRepoFullName } from '../api.js';
 import { getCurrentUser } from '../auth.js';
 
 function escapeHtml(s) {
@@ -62,8 +62,8 @@ export function renderSearch(params) {
           <ul class="package-list">
             ${results
               .map((p) => {
-                const [o, r] = p.name.split('/');
-                const href = `/repo/${encodeURIComponent(o || '')}/${encodeURIComponent(r || p.name)}`;
+                const packageName = packageNameFromRepoFullName(p.name);
+                const href = packageName ? `/package/${encodeURIComponent(packageName)}` : '#';
                 const relatedLinks = p.relatedLinks && Array.isArray(p.relatedLinks) ? p.relatedLinks : [];
                 const relatedLinksHtml =
                   relatedLinks.length > 0

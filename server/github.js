@@ -32,3 +32,18 @@ export async function fetchRepoMetadata(owner, repo) {
     repoUrl: data.html_url || `https://github.com/${owner}/${repo}`,
   };
 }
+
+/**
+ * Fetch repo README content from GitHub. Returns null if no README or on error.
+ */
+export async function fetchRepoReadme(owner, repo) {
+  const url = `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/readme`;
+  const res = await fetch(url, {
+    headers: {
+      Accept: 'application/vnd.github.raw',
+      'User-Agent': 'ipm-repo-fetcher',
+    },
+  });
+  if (res.status === 404 || res.status !== 200) return null;
+  return res.text();
+}

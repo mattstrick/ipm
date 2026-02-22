@@ -59,6 +59,10 @@ export function renderRepo(params) {
             <h2>GitHub repository</h2>
             <p>This is a GitHub repo you added to your registry. It appears first when you search for it.</p>
             <p><a href="${escapeHtml(r.repoUrl)}" target="_blank" rel="noopener" class="btn btn-primary">Open on GitHub</a></p>
+            ${r.readme ? `
+            <h2>Readme</h2>
+            <div class="readme-content">${escapeHtml(r.readme).replace(/\n/g, '<br>')}</div>
+            ` : ''}
           </div>
           <aside>
             <div class="sidebar-box">

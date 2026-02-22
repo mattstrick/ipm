@@ -16,9 +16,9 @@ import {
   getUserRepoByName,
   getLanguages,
 } from './db.js';
-import { getRelatedLinksForRepo } from './repo-conversions.js';
+import { getRelatedLinksForRepo, getReposFromConversions, packageNameFromRepoFullName } from './repo-conversions.js';
 import { searchRegistry, getPackageFromRegistry, getPackageDetailsFromRegistry } from './registry.js';
-import { parseRepoUrl, fetchRepoMetadata } from './github.js';
+import { parseRepoUrl, fetchRepoMetadata, fetchRepoReadme } from './github.js';
 import {
   hashPassword,
   verifyPassword,
@@ -239,14 +239,20 @@ app.delete('/api/repos/:id', (req, res) => {
   }
 });
 
-app.get('/api/repo/:owner/:repo', (req, res) => {
+app.get('/api/repo/:owner/:repo', async (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'Not signed in' });
   try {
     const name = `${req.params.owner}/${req.params.repo}`;
     const db = getDb();
     const row = getUserRepoByName(db, req.user.id, name);
     if (!row) return res.status(404).json({ error: 'Repo not found in your list' });
-    const repo = { ...row, relatedLinks: getRelatedLinksForRepo(name) };
+    let readme = null;
+    try {
+      readme = await fetchRepoReadme(req.params.owner, req.params.repo);
+    } catch {
+      // leave readme null on fetch error
+    }
+    const repo = { ...row, relatedLinks: getRelatedLinksForRepo(name), readme };
     res.json(repo);
   } catch (err) {
     console.error('Get repo error:', err);
@@ -263,6 +269,19 @@ app.get('/api/package/:name', async (req, res) => {
     if (!pkg) {
       const fromRegistry = await getPackageFromRegistry(name);
       if (!fromRegistry) {
+        // Resolve by repo: package name = repo name minus everything after last hyphen.
+        // Prefer a repo that has related links (is in repo-conversions) so the language list shows.
+        if (req.user) {
+          const repos = getUserRepos(db, req.user.id);
+          const candidates = repos.filter((r) => packageNameFromRepoFullName(r.name) === name);
+          if (candidates.length > 0) {
+            const conversionsRepos = getReposFromConversions();
+            const match =
+              candidates.find((r) => conversionsRepos.includes(r.name)) || candidates[0];
+            const [owner, repo] = match.name.split('/');
+            return res.json({ isRepo: true, owner, repo });
+          }
+        }
         return res.status(404).json({ error: 'Package not found' });
       }
       upsertPackage(db, fromRegistry);

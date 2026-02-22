@@ -64,3 +64,22 @@ export function getRelatedLinksForRepo(repoName) {
   }
   return [];
 }
+
+/**
+ * Return list of repo names (owner/repo) from repo-conversions.json.
+ */
+export function getReposFromConversions() {
+  return Object.keys(loadConversions());
+}
+
+/**
+ * Package name from full repo name: repo part minus everything after the last hyphen.
+ * e.g. "mattstrick/array-first-javascript" -> "array-first"
+ */
+export function packageNameFromRepoFullName(fullName) {
+  if (!fullName || typeof fullName !== 'string') return '';
+  const parts = fullName.trim().split('/');
+  const repoPart = parts.length > 1 ? parts[1] : parts[0] || fullName;
+  const lastHyphen = repoPart.lastIndexOf('-');
+  return lastHyphen > 0 ? repoPart.slice(0, lastHyphen) : repoPart;
+}

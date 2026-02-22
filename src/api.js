@@ -1,5 +1,14 @@
 const API = '/api';
 
+/** Package name from full repo name: repo part minus everything after the last hyphen. */
+export function packageNameFromRepoFullName(fullName) {
+  if (!fullName || typeof fullName !== 'string') return '';
+  const parts = String(fullName).trim().split('/');
+  const repoPart = parts.length > 1 ? parts[1] : parts[0] || fullName;
+  const lastHyphen = repoPart.lastIndexOf('-');
+  return lastHyphen > 0 ? repoPart.slice(0, lastHyphen) : repoPart;
+}
+
 export async function searchPackages(query = '') {
   const url = query.trim()
     ? `${API}/search?q=${encodeURIComponent(query)}`

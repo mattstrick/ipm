@@ -1,4 +1,4 @@
-import { getRepos, addRepo, deleteRepo } from '../api.js';
+import { getRepos, addRepo, deleteRepo, packageNameFromRepoFullName } from '../api.js';
 
 function escapeHtml(s) {
   if (s == null) return '';
@@ -49,8 +49,8 @@ export function renderRepos() {
         <ul class="package-list">
           ${repos
             .map((r) => {
-              const [owner, repo] = (r.name || '').split('/');
-              const href = owner && repo ? `/repo/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}` : '#';
+              const packageName = packageNameFromRepoFullName(r.name);
+              const href = packageName ? `/package/${encodeURIComponent(packageName)}` : '#';
               return `
             <li class="package-item repo-list-item">
               <a href="${href}" class="package-name" data-spa>${escapeHtml(r.name)}</a>

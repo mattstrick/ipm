@@ -1,4 +1,4 @@
-import { getPackage, getPackageDetails } from '../api.js';
+import { getPackage, getPackageDetails, getRepo } from '../api.js';
 
 function formatDownloads(n) {
   if (n >= 1e6) return (n / 1e6).toFixed(1) + 'M';
@@ -24,6 +24,15 @@ function escapeHtml(s) {
   return div.innerHTML;
 }
 
+function formatDate(ms) {
+  if (!ms) return '—';
+  try {
+    return new Date(ms).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  } catch {
+    return '—';
+  }
+}
+
 const NPM_PACKAGE_URL = 'https://www.npmjs.com/package';
 
 export function renderPackage(params) {
@@ -46,6 +55,51 @@ export function renderPackage(params) {
             <p><strong>Package not found</strong></p>
             <p>There is no package named "${escapeHtml(params.name)}".</p>
             <p><a href="/search" data-spa>Browse packages</a></p>
+          </div>
+        `;
+        return;
+      }
+
+      if (pkg.isRepo && pkg.owner && pkg.repo) {
+        const r = await getRepo(pkg.owner, pkg.repo);
+        if (!r) {
+          contentEl.innerHTML = `
+            <div class="empty-state">
+              <p><strong>Repo not found</strong></p>
+              <p>This repo isn't in your list, or you're not signed in.</p>
+              <p><a href="/repos" data-spa>Your repos</a></p>
+            </div>
+          `;
+          return;
+        }
+        const name = r.name || `${pkg.owner}/${pkg.repo}`;
+        const relatedLinks = (r.relatedLinks && Array.isArray(r.relatedLinks)) ? r.relatedLinks : [];
+        contentEl.innerHTML = `
+          <div class="package-header">
+            <div class="package-title">
+              <h1>${escapeHtml(name)}</h1>
+              <span class="package-badge">Repo</span>
+            </div>
+            <p class="package-desc-main">${escapeHtml(r.description || 'No description.')}</p>
+          </div>
+          <div class="package-layout">
+            <div class="package-readme">
+              <h2>GitHub repository</h2>
+              <p>This is a GitHub repo you added to your registry. It appears first when you search for it.</p>
+              <p><a href="${escapeHtml(r.repoUrl)}" target="_blank" rel="noopener" class="btn btn-primary">Open on GitHub</a></p>
+              ${r.readme ? `
+              <h2>Readme</h2>
+              <div class="readme-content">${escapeHtml(r.readme).replace(/\n/g, '<br>')}</div>
+              ` : ''}
+            </div>
+            <aside>
+              <div class="sidebar-box">
+                <h3>Repository</h3>
+                <div class="meta-row"><strong>Added</strong> ${formatDate(r.addedAt)}</div>
+                <div class="meta-row"><a href="${escapeHtml(r.repoUrl)}" target="_blank" rel="noopener">View on GitHub</a></div>
+                ${relatedLinks.map((l) => `<div class="meta-row"><strong>${escapeHtml(l.label || 'Related')}</strong> <a href="${escapeHtml(l.url)}" target="_blank" rel="noopener">Link</a></div>`).join('')}
+              </div>
+            </aside>
           </div>
         `;
         return;
