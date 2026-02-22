@@ -15,3 +15,10 @@ export async function getPackage(name) {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+export async function getPackageDetails(name) {
+  const res = await fetch(`${API}/package/${encodeURIComponent(name)}/details`);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}

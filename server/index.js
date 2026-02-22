@@ -1,7 +1,7 @@
 import express from 'express';
 import cookieParser from 'cookie-parser';
 import { getDb, searchPackages, getPackageByName, upsertPackage, createUser, getUserByEmail, getUserById } from './db.js';
-import { searchRegistry, getPackageFromRegistry } from './registry.js';
+import { searchRegistry, getPackageFromRegistry, getPackageDetailsFromRegistry } from './registry.js';
 import {
   hashPassword,
   verifyPassword,
@@ -127,6 +127,18 @@ app.get('/api/package/:name', async (req, res) => {
     res.json(pkg);
   } catch (err) {
     console.error('Package fetch error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/package/:name/details', async (req, res) => {
+  try {
+    const name = req.params.name;
+    const details = await getPackageDetailsFromRegistry(name);
+    if (!details) return res.status(404).json({ error: 'Package not found' });
+    res.json(details);
+  } catch (err) {
+    console.error('Package details error:', err);
     res.status(500).json({ error: err.message });
   }
 });

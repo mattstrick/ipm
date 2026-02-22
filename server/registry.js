@@ -46,3 +46,29 @@ export async function getPackageFromRegistry(name) {
     homepage: versionData?.homepage ?? data.homepage ?? null,
   };
 }
+
+/** Fetch full packument for dependencies and versions (not stored in DB). */
+export async function getPackageDetailsFromRegistry(name) {
+  const url = `${REGISTRY}/${encodeURIComponent(name)}`;
+  const res = await fetch(url);
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error(`Package fetch failed: ${res.status}`);
+  const data = await res.json();
+  const latest = data['dist-tags']?.latest;
+  const versionData = latest && data.versions ? data.versions[latest] : null;
+  const dependencies = versionData?.dependencies ? Object.entries(versionData.dependencies).map(([n, v]) => ({ name: n, version: v })) : [];
+  const devDependencies = versionData?.devDependencies ? Object.entries(versionData.devDependencies).map(([n, v]) => ({ name: n, version: v })) : [];
+  const versions = data.versions ? Object.keys(data.versions).sort(semverCompare) : [];
+  return { dependencies, devDependencies, versions };
+}
+
+function semverCompare(a, b) {
+  const partsA = a.split('.').map(Number);
+  const partsB = b.split('.').map(Number);
+  for (let i = 0; i < Math.max(partsA.length, partsB.length); i++) {
+    const x = partsA[i] ?? 0;
+    const y = partsB[i] ?? 0;
+    if (x !== y) return y - x; // descending
+  }
+  return 0;
+}

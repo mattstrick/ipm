@@ -376,6 +376,37 @@ input, textarea, select {
   overflow-x: auto;
 }
 
+.package-deps-list,
+.package-versions-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0;
+}
+
+.package-deps-list li,
+.package-versions-list li {
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--ipm-gray-100);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.package-deps-list li:last-child,
+.package-versions-list li:last-child {
+  border-bottom: none;
+}
+
+.package-deps-list a {
+  color: var(--ipm-red);
+}
+
+.dep-version {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--ipm-gray-500);
+}
+
 .sidebar-box {
   background: var(--ipm-gray-100);
   border-radius: var(--radius);
