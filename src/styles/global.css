@@ -217,6 +217,17 @@ input, textarea, select {
   margin: 0 0 1rem;
 }
 
+.docs-page h1,
+.support-page h1,
+.status-page h1 {
+  margin: 0 0 2rem;
+  font-size: 2rem;
+}
+
+.status-ok { color: var(--ipm-green); }
+.status-degraded { color: var(--ipm-red); }
+.status-outage { color: var(--ipm-red); }
+
 /* Search page */
 .search-bar-large {
   max-width: 640px;

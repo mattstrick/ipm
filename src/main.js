@@ -8,6 +8,9 @@ import { renderSignup } from './pages/signup.js';
 import { renderSignin } from './pages/signin.js';
 import { renderRepos } from './pages/repos.js';
 import { renderRepo } from './pages/repo.js';
+import { renderDocs } from './pages/docs.js';
+import { renderSupport } from './pages/support.js';
+import { renderStatus } from './pages/status.js';
 
 const routes = [
   { path: '/', render: renderHome },
@@ -17,6 +20,9 @@ const routes = [
   { path: '/signin', render: renderSignin },
   { path: '/repos', render: renderRepos },
   { path: '/repo/:owner/:repo', render: renderRepo },
+  { path: '/docs', render: renderDocs },
+  { path: '/support', render: renderSupport },
+  { path: '/status', render: renderStatus },
 ];
 
 function getRoute() {
@@ -31,6 +37,9 @@ function getRoute() {
   if (path === '/repos') return { route: routes[5], params: {} };
   const repoMatch = path.match(/^\/repo\/([^/]+)\/([^/]+)$/);
   if (repoMatch) return { route: routes[6], params: { owner: decodeURIComponent(repoMatch[1]), repo: decodeURIComponent(repoMatch[2]) } };
+  if (path === '/docs') return { route: routes[7], params: {} };
+  if (path === '/support') return { route: routes[8], params: {} };
+  if (path === '/status') return { route: routes[9], params: {} };
   return null;
 }
 

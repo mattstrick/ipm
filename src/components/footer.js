@@ -6,7 +6,7 @@ export function renderFooter() {
       <strong>ipm</strong> — You're building amazing things.
     </p>
     <p>
-      <a href="/" data-spa>Support</a> · <a href="/" data-spa>Documentation</a> · <a href="/" data-spa>Status</a>
+      <a href="/support" data-spa>Support</a> · <a href="/docs" data-spa>Documentation</a> · <a href="/status" data-spa>Status</a>
     </p>
   `;
   return footer;
