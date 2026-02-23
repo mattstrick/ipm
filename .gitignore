@@ -5,3 +5,4 @@ data/*.db
 .env.*
 !.env.example
 REPO_LANGUAGES.md
+.ipm-test/
