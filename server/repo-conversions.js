@@ -29,9 +29,13 @@ function labelForLang(lang) {
   return lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase();
 }
 
+/** Build target subpath in monorepo (must match registry BUILD_TARGET_DIR). */
+const BUILD_TARGET_DIR = 'packages';
+
 /**
  * Get related implementation links for a repo from repo-conversions.json.
- * JSON format: { "owner/repo": [ "kotlin", "python" ] } -> links to github.com/owner/repo-kotlin etc.
+ * Monorepo: one repo with multiple build targets; each language is a subpath (e.g. packages/typescript).
+ * JSON format: { "owner/repo": [ "kotlin", "python" ] } -> links to github.com/owner/repo/tree/main/packages/kotlin etc.
  * Returns [ { label, url } ].
  */
 export function getRelatedLinksForRepo(repoName) {
@@ -43,13 +47,14 @@ export function getRelatedLinksForRepo(repoName) {
   if (Array.isArray(value)) {
     const [owner, repo] = key.split('/');
     if (!owner || !repo) return [];
+    const baseUrl = `https://github.com/${owner}/${repo}`;
     return value
       .filter((item) => item != null)
       .map((item) => {
         if (typeof item === 'string') {
           return {
             label: labelForLang(item),
-            url: `https://github.com/${owner}/${repo}-${item}`,
+            url: `${baseUrl}/tree/main/${BUILD_TARGET_DIR}/${item}`,
           };
         }
         if (typeof item === 'object' && item !== null && item.url) {
@@ -73,8 +78,9 @@ export function getReposFromConversions() {
 }
 
 /**
- * Package name from full repo name: repo part minus everything after the last hyphen.
- * e.g. "mattstrick/array-first-javascript" -> "array-first"
+ * Package name from full repo name.
+ * Monorepo: repo is the package (e.g. "mattstrick/array-first" -> "array-first").
+ * Legacy: repo part minus everything after the last hyphen (e.g. "mattstrick/array-first-javascript" -> "array-first").
  */
 export function packageNameFromRepoFullName(fullName) {
   if (!fullName || typeof fullName !== 'string') return '';

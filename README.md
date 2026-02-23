@@ -8,7 +8,7 @@ A package registry UI — same look and feel as classic registry sites, with **r
 - **Search** – Search bar and package list (from API/database or upstream registry)
 - **Package** – Package detail page with install command (`ipm install <name>`), readme, and sidebar metadata
 - **Sign up / Sign in** – Create an account or sign in; session is stored in an httpOnly cookie (JWT). When signed in, the header shows your name and Sign out.
-- **Registry API** – `GET /registry/:name` returns an npm-style packument for the ipm CLI. Optional `?language=typescript` (or other language) resolves a language-variant repo (e.g. `owner/repo-typescript`). Packuments are built from the IPM database only; tarballs point at GitHub archive URLs.
+- **Registry API** – `GET /registry/:name` returns an npm-style packument for the ipm CLI. Packages are expected to be **monorepos** with multiple build targets: one repo per package, with each language in a subpath (e.g. `packages/javascript`, `packages/typescript`). Optional `?language=typescript` selects that build target; the packument includes `ipm.buildTarget` (the subpath) and a single tarball for the whole repo. Packuments are built from the IPM database only; tarballs point at GitHub archive URLs.
 
 Design uses ipm’s red/black palette, header with search, and familiar layout.
 
@@ -64,7 +64,7 @@ If you don’t run the API server, the search and package pages will show an err
 
 - **Location:** `data/packages.db` (SQLite). Created automatically on first request.
 - **Custom path:** set `IPM_DB_PATH` to a full path to the DB file.
-- **Behavior:** Search and package-detail requests hit the upstream registry when data isn’t in the DB; results are cached so repeat requests are fast. The **registry endpoint** (`/registry/:name`) serves packuments from the DB only — it does not proxy the public registry; packages must exist in the DB to be installable via the ipm CLI.
+- **Behavior:** Search and package-detail requests hit the upstream registry when data isn’t in the DB; results are cached so repeat requests are fast. The **registry endpoint** (`/registry/:name`) serves packuments from the DB only — it does not proxy the public registry; packages must exist in the DB to be installable via the ipm CLI. Each package is a single monorepo; the CLI uses the `ipm.buildTarget` subpath (e.g. `packages/typescript`) after fetching the repo tarball.
 - **Users:** Sign-up data is stored in the same SQLite DB (table `users`). For production, set `JWT_SECRET` to a long random string for signing auth tokens.
 
 ## Build

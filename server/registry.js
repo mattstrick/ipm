@@ -50,30 +50,6 @@ export async function getPackageFromRegistry(name) {
   };
 }
 
-/** Build npm-style packument from an IPM packages table row (DB-only registry). */
-export function buildPackumentFromIpmPackage(pkg) {
-  const version = pkg.version || '0.0.0';
-  const tarball = githubArchiveTarballFromRepoUrl(pkg.repositoryUrl, version);
-  const packument = {
-    name: pkg.name,
-    'dist-tags': { latest: version },
-    versions: {
-      [version]: {
-        name: pkg.name,
-        version,
-        description: pkg.description || undefined,
-        license: pkg.license || undefined,
-        repository: pkg.repositoryUrl ? { type: 'git', url: pkg.repositoryUrl } : undefined,
-        homepage: pkg.homepage || undefined,
-        readme: pkg.readme || undefined,
-        dist: tarball ? { tarball, integrity: undefined } : undefined,
-      },
-    },
-  };
-  if (pkg.publishedAt) packument.time = { [version]: pkg.publishedAt, modified: pkg.publishedAt };
-  return packument;
-}
-
 /** Return GitHub archive tarball URL from repo URL (e.g. https://github.com/owner/repo) and version. */
 export function githubArchiveTarballFromRepoUrl(repositoryUrl, version) {
   if (!repositoryUrl || typeof repositoryUrl !== 'string') return null;
@@ -87,37 +63,66 @@ export function githubArchiveTarballFromRepoUrl(repositoryUrl, version) {
   return `https://github.com/${owner}/${repo}/archive/refs/tags/v${v}.tar.gz`;
 }
 
-/** Derive language-variant repo from base package. repo "array-first-javascript" + language "typescript" -> owner/array-first-typescript. */
-function variantRepoFromPackage(pkg, language) {
-  if (!pkg || !pkg.repositoryUrl || !language || typeof language !== 'string') return null;
-  const m = pkg.repositoryUrl.match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?\/?$/i);
-  if (!m) return null;
-  const [, owner, repo] = m;
-  const base = repo.lastIndexOf('-') > 0 ? repo.slice(0, repo.lastIndexOf('-')) : repo;
-  const variantRepo = base + '-' + language.toLowerCase();
-  return `https://github.com/${owner}/${variantRepo}`;
+/** Subpath inside the monorepo where each language's build lives (e.g. packages/javascript). */
+const BUILD_TARGET_DIR = 'packages';
+
+/** Default language when none is selected (used for build target subpath). */
+const DEFAULT_LANGUAGE = 'javascript';
+
+/**
+ * Get the build target for a package and programming language.
+ * Expected structure: one monorepo per package; each language is a subpath (e.g. packages/typescript).
+ * Returns { repositoryUrl, subpath } so the client can fetch the repo and use the subpath.
+ */
+export function getBuildTargetForLanguage(pkg, language) {
+  if (!pkg?.repositoryUrl) return null;
+  const lang = (language && typeof language === 'string' ? language : DEFAULT_LANGUAGE).trim().toLowerCase();
+  if (!lang) return null;
+  const subpath = `${BUILD_TARGET_DIR}/${lang}`;
+  return { repositoryUrl: pkg.repositoryUrl, subpath };
 }
 
-/** Build packument for a language variant of a package (variant repo = base + '-' + language). */
-export function buildPackumentForLanguage(pkg, language) {
-  const variantUrl = variantRepoFromPackage(pkg, language);
-  if (!variantUrl) return null;
+/**
+ * Build packument for a package using the build target for the selected programming language.
+ * 1) Look up is done by caller (package by name).
+ * 2) Build target = monorepo + subpath (e.g. packages/<language>).
+ * 3) Same tarball (whole repo) for every language; version entry includes ipm.buildTarget so the CLI knows which subpath to use.
+ * If no language is provided, uses DEFAULT_LANGUAGE.
+ */
+export function getPackumentForPackageAndLanguage(pkg, language) {
+  const target = getBuildTargetForLanguage(pkg, language || DEFAULT_LANGUAGE);
+  if (!target) return null;
   const version = pkg.version || '0.0.0';
-  const tarball = githubArchiveTarballFromRepoUrl(variantUrl, version);
-  return {
+  const tarball = githubArchiveTarballFromRepoUrl(target.repositoryUrl, version);
+  const packument = {
     name: pkg.name,
     'dist-tags': { latest: version },
     versions: {
       [version]: {
         name: pkg.name,
         version,
-        description: (pkg.description || '') + ' (' + language + ' variant)',
-        repository: { type: 'git', url: variantUrl },
+        description: pkg.description || undefined,
+        license: pkg.license || undefined,
+        repository: { type: 'git', url: target.repositoryUrl },
+        homepage: pkg.homepage || undefined,
+        readme: pkg.readme || undefined,
         dist: tarball ? { tarball, integrity: undefined } : undefined,
+        ipm: { buildTarget: target.subpath },
       },
     },
-    time: pkg.publishedAt ? { [version]: pkg.publishedAt, modified: pkg.publishedAt } : undefined,
   };
+  if (pkg.publishedAt) packument.time = { [version]: pkg.publishedAt, modified: pkg.publishedAt };
+  return packument;
+}
+
+/** Build npm-style packument from an IPM packages table row (DB-only registry). */
+export function buildPackumentFromIpmPackage(pkg) {
+  return getPackumentForPackageAndLanguage(pkg, null);
+}
+
+/** Build packument for a given language build target in the package monorepo. */
+export function buildPackumentForLanguage(pkg, language) {
+  return getPackumentForPackageAndLanguage(pkg, language);
 }
 
 /** Fetch full packument for dependencies and versions (not stored in DB). */
