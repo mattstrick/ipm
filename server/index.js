@@ -375,7 +375,23 @@ app.get('/registry/:name', (req, res) => {
     const name = req.params.name;
     const language = (req.query.language || '').trim().toLowerCase() || undefined;
     const db = getDb();
-    const pkg = getPackageByName(db, name);
+    let pkg = null;
+    const conversionsRepos = getReposFromConversions();
+    const monorepo = conversionsRepos.find((fullName) => packageNameFromRepoFullName(fullName) === name);
+    if (monorepo) {
+      const [owner, repo] = monorepo.split('/');
+      pkg = {
+        name,
+        repositoryUrl: `https://github.com/${owner}/${repo}`,
+        version: '0.0.0',
+        description: null,
+        readme: null,
+        license: null,
+        homepage: null,
+        publishedAt: null,
+      };
+    }
+    if (!pkg) pkg = getPackageByName(db, name);
     if (!pkg) return res.status(404).json({ error: 'Not found' });
     const packument = getPackumentForPackageAndLanguage(pkg, language);
     if (!packument) return res.status(404).json({ error: 'Build target not found' });
