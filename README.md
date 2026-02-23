@@ -1,13 +1,14 @@
 # ipm
 
-A package registry UI — same look and feel as classic registry sites, with optional **real data** from a public JavaScript package registry stored in a local database.
+A package registry UI — same look and feel as classic registry sites, with **real data** from a public JavaScript package registry stored in a local database. The server also exposes an npm-style registry endpoint for the [ipm CLI](https://github.com/mattstrick/ipm-cli), so you can run `ipm install <pkg>` and resolve packages from this registry.
 
 ## What’s included
 
 - **Home** – Hero and marketing copy in ipm style
 - **Search** – Search bar and package list (from API/database or upstream registry)
-- **Package** – Package detail page with install command (`ipm install`), readme, and sidebar metadata
+- **Package** – Package detail page with install command (`ipm install <name>`), readme, and sidebar metadata
 - **Sign up / Sign in** – Create an account or sign in; session is stored in an httpOnly cookie (JWT). When signed in, the header shows your name and Sign out.
+- **Registry API** – `GET /registry/:name` returns an npm-style packument for the ipm CLI. Optional `?language=typescript` (or other language) resolves a language-variant repo (e.g. `owner/repo-typescript`). Packuments are built from the IPM database only; tarballs point at GitHub archive URLs.
 
 Design uses ipm’s red/black palette, header with search, and familiar layout.
 
@@ -34,6 +35,27 @@ Design uses ipm’s red/black palette, header with search, and familiar layout.
 
 **One-command option:** from the project root run `npm run dev:all` to start both the server and Vite together (requires `concurrently`).
 
+### Using the ipm CLI
+
+With the server running, point the [ipm CLI](https://github.com/mattstrick/ipm-cli) at this registry (default is `http://localhost:3001/registry`). In a project directory:
+
+```bash
+ipm install array-first
+```
+
+To install a specific **language variant** of a package, set `ipm` in `package.json`:
+
+- **`ipm.language`** – Default language for all dependencies (e.g. `"typescript"`, `"python"`).
+- **`ipm.languages`** – Per-package overrides: `{ "package-name": "language" }`.
+
+See [PACKAGE_JSON_IPM.md](PACKAGE_JSON_IPM.md) for details and an example.
+
+To test the install flow (server must be running, `ipm` on PATH):
+
+```bash
+./scripts/test-ipm-install.sh
+```
+
 ### Without the server (static only)
 
 If you don’t run the API server, the search and package pages will show an error message asking you to run `npm run server`. The homepage and static shell still work.
@@ -42,7 +64,7 @@ If you don’t run the API server, the search and package pages will show an err
 
 - **Location:** `data/packages.db` (SQLite). Created automatically on first request.
 - **Custom path:** set `IPM_DB_PATH` to a full path to the DB file.
-- **Behavior:** Search and package-detail requests hit the upstream registry when data isn’t in the DB; results are cached so repeat requests are fast.
+- **Behavior:** Search and package-detail requests hit the upstream registry when data isn’t in the DB; results are cached so repeat requests are fast. The **registry endpoint** (`/registry/:name`) serves packuments from the DB only — it does not proxy the public registry; packages must exist in the DB to be installable via the ipm CLI.
 - **Users:** Sign-up data is stored in the same SQLite DB (table `users`). For production, set `JWT_SECRET` to a long random string for signing auth tokens.
 
 ## Build
