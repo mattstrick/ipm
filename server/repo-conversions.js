@@ -81,11 +81,13 @@ export function getReposFromConversions() {
  * Package name from full repo name.
  * Monorepo: repo is the package (e.g. "mattstrick/array-first" -> "array-first").
  * Legacy: repo part minus everything after the last hyphen (e.g. "mattstrick/array-first-javascript" -> "array-first").
+ * Only strip the last segment when the repo has more than one hyphen (so "array-first" is not reduced to "array").
  */
 export function packageNameFromRepoFullName(fullName) {
   if (!fullName || typeof fullName !== 'string') return '';
   const parts = fullName.trim().split('/');
   const repoPart = parts.length > 1 ? parts[1] : parts[0] || fullName;
   const lastHyphen = repoPart.lastIndexOf('-');
-  return lastHyphen > 0 ? repoPart.slice(0, lastHyphen) : repoPart;
+  const hyphenCount = (repoPart.match(/-/g) || []).length;
+  return hyphenCount > 1 ? repoPart.slice(0, lastHyphen) : repoPart;
 }
