@@ -35,42 +35,48 @@ function labelForLang(lang) {
 /** Build target subpath in monorepo (must match registry BUILD_TARGET_DIR). */
 const BUILD_TARGET_DIR = 'packages';
 
+/** Normalize entry: array -> { languages }, object -> as-is. */
+function normalizeEntry(value) {
+  if (Array.isArray(value)) return { languages: value };
+  if (value && typeof value === 'object' && Array.isArray(value.languages)) return value;
+  return null;
+}
+
 /**
  * Get related implementation links for a repo from repo-conversions.json.
  * Monorepo: one repo with multiple build targets; each language is a subpath (e.g. packages/typescript).
- * JSON format: { "owner/repo": [ "kotlin", "python" ] } -> links to github.com/owner/repo/tree/main/packages/kotlin etc.
+ * JSON format: { "owner/repo": { languages: ["kotlin","python"], defaultRepo?: "..." } } or legacy array.
  * Returns [ { label, url } ].
  */
 export function getRelatedLinksForRepo(repoName) {
   const data = loadConversions();
   const key = repoName && typeof repoName === 'string' ? repoName.trim() : '';
   if (!key) return [];
-  const value = data[key];
-  if (!value) return [];
-  if (Array.isArray(value)) {
-    const [owner, repo] = key.split('/');
-    if (!owner || !repo) return [];
-    const baseUrl = `https://github.com/${owner}/${repo}`;
-    return value
-      .filter((item) => item != null)
-      .map((item) => {
-        if (typeof item === 'string') {
-          return {
-            label: labelForLang(item),
-            url: `${baseUrl}/tree/main/${BUILD_TARGET_DIR}/${item}`,
-          };
-        }
-        if (typeof item === 'object' && item !== null && item.url) {
-          return {
-            label: item.label || item.url,
-            url: String(item.url),
-          };
-        }
-        return null;
-      })
-      .filter(Boolean);
-  }
-  return [];
+  const raw = data[key];
+  const entry = normalizeEntry(raw);
+  if (!entry) return [];
+  const languages = entry.languages || [];
+  const [owner, repo] = key.split('/');
+  if (!owner || !repo) return [];
+  const baseUrl = `https://github.com/${owner}/${repo}`;
+  return languages
+    .filter((item) => item != null)
+    .map((item) => {
+      if (typeof item === 'string') {
+        return {
+          label: labelForLang(item),
+          url: `${baseUrl}/tree/main/${BUILD_TARGET_DIR}/${item}`,
+        };
+      }
+      if (typeof item === 'object' && item !== null && item.url) {
+        return {
+          label: item.label || item.url,
+          url: String(item.url),
+        };
+      }
+      return null;
+    })
+    .filter(Boolean);
 }
 
 /**
@@ -80,30 +86,54 @@ export function getRelatedLinksForRepo(repoName) {
  */
 export function getBuildTargetsForRepo(repoName) {
   const data = loadConversions();
-  const key = repoName && typeof repoName === 'string' ? repoName.trim() : '';
+  const key = resolveConversionsKey(data, repoName);
   if (!key) return [];
-  let value = data[key];
-  if (!value) {
-    const keyLower = key.toLowerCase();
-    const matchedKey = Object.keys(data).find((k) => k.toLowerCase() === keyLower);
-    if (matchedKey) value = data[matchedKey];
+  const entry = normalizeEntry(data[key]);
+  if (!entry) return [];
+  const languages = entry.languages || [];
+  return languages
+    .filter((item) => item != null)
+    .map((item) => (typeof item === 'string' ? `${BUILD_TARGET_DIR}/${item}` : null))
+    .filter(Boolean);
+}
+
+/** Resolve conversions key for a repo (exact, case-insensitive, or base repo). */
+function resolveConversionsKey(data, repoName) {
+  const key = repoName && typeof repoName === 'string' ? repoName.trim() : '';
+  if (!key) return null;
+  if (data[key]) return key;
+  const keyLower = key.toLowerCase();
+  const matchedKey = Object.keys(data).find((k) => k.toLowerCase() === keyLower);
+  if (matchedKey) return matchedKey;
+  const [owner, repoPart] = key.split('/');
+  const baseRepo = packageNameFromRepoFullName(key);
+  if (owner && baseRepo && baseRepo !== repoPart) {
+    const baseKey = `${owner}/${baseRepo}`;
+    if (data[baseKey]) return baseKey;
   }
-  if (!value) {
-    const [owner, repoPart] = key.split('/');
-    const baseRepo = packageNameFromRepoFullName(key);
-    if (owner && baseRepo && baseRepo !== repoPart) {
-      const baseKey = `${owner}/${baseRepo}`;
-      value = data[baseKey];
-    }
-  }
-  if (!value) return [];
-  if (Array.isArray(value)) {
-    return value
-      .filter((item) => item != null)
-      .map((item) => (typeof item === 'string' ? `${BUILD_TARGET_DIR}/${item}` : null))
-      .filter(Boolean);
-  }
-  return [];
+  return null;
+}
+
+/**
+ * Get the default/source repo for change detection and syncing build targets.
+ * When the default repo changes, other build targets can be updated accordingly.
+ *
+ * @param {string} monorepoName - Full repo name (e.g. "mattstrick/array-first")
+ * @returns {{ defaultRepo: string, defaultLanguage: string, monorepo: string } | null}
+ */
+export function getDefaultRepo(monorepoName) {
+  const data = loadConversions();
+  const key = resolveConversionsKey(data, monorepoName);
+  if (!key) return null;
+  const entry = normalizeEntry(data[key]);
+  if (!entry) return null;
+  const defaultRepo = entry.defaultRepo || key;
+  const defaultLanguage = (entry.defaultLanguage || 'javascript').toLowerCase();
+  return {
+    defaultRepo: typeof defaultRepo === 'string' ? defaultRepo : key,
+    defaultLanguage,
+    monorepo: key,
+  };
 }
 
 /**
@@ -111,6 +141,17 @@ export function getBuildTargetsForRepo(repoName) {
  */
 export function getReposFromConversions() {
   return Object.keys(loadConversions());
+}
+
+/**
+ * Get default repo for a package by name (e.g. "array-first").
+ * Resolves package name to monorepo via repo-conversions, then returns default repo info.
+ */
+export function getDefaultRepoForPackage(packageName) {
+  const repoNames = getReposFromConversions();
+  const pkgLower = (packageName || '').toLowerCase();
+  const match = repoNames.find((fullName) => packageNameFromRepoFullName(fullName).toLowerCase() === pkgLower);
+  return match ? getDefaultRepo(match) : null;
 }
 
 function loadDescriptions() {

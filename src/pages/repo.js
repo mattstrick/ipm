@@ -56,6 +56,11 @@ export function renderRepo(params) {
         ? `<div class="meta-row"><strong>Build targets</strong></div>
            <div class="repo-build-targets">${buildTargets.map((path) => `<code class="repo-build-target">${escapeHtml(path)}</code>`).join(' ')}</div>`
         : '';
+      const defaultRepo = r.defaultRepo;
+      const defaultRepoHtml = defaultRepo && defaultRepo.defaultRepo
+        ? `<div class="meta-row"><strong>Source repo</strong></div>
+           <div class="meta-row"><a href="https://github.com/${escapeHtml(defaultRepo.defaultRepo)}" target="_blank" rel="noopener">${escapeHtml(defaultRepo.defaultRepo)}</a> <span class="meta-muted">(${escapeHtml(defaultRepo.defaultLanguage)})</span></div>`
+        : '';
       contentEl.innerHTML = `
         <div class="package-header">
           <div class="package-title">
@@ -79,6 +84,7 @@ export function renderRepo(params) {
               <h3>Repository</h3>
               <div class="meta-row"><strong>Added</strong> ${formatDate(r.addedAt)}</div>
               <div class="meta-row"><a href="${escapeHtml(r.repoUrl)}" target="_blank" rel="noopener">View on GitHub</a></div>
+              ${defaultRepoHtml}
               ${buildTargetsHtml}
             </div>
           </aside>

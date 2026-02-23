@@ -1,1 +1,7 @@
-{"mattstrick/array-first":["assemblyscript","clojure","csharp","elixir","go","haskell","java","javascript","kotlin","php","python","ruby","rust","swift","typescript"]}
+{
+  "mattstrick/array-first": {
+    "defaultRepo": "jonschlinkert/array-first",
+    "defaultLanguage": "javascript",
+    "languages": ["assemblyscript", "clojure", "csharp", "elixir", "go", "haskell", "java", "javascript", "kotlin", "php", "python", "ruby", "rust", "swift", "typescript"]
+  }
+}

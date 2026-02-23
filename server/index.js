@@ -16,7 +16,7 @@ import {
   getUserRepoByName,
   getLanguages,
 } from './db.js';
-import { getRelatedLinksForRepo, getBuildTargetsForRepo, getReposFromConversions, packageNameFromRepoFullName, applyDescriptionOverride } from './repo-conversions.js';
+import { getRelatedLinksForRepo, getBuildTargetsForRepo, getReposFromConversions, getDefaultRepo, packageNameFromRepoFullName, applyDescriptionOverride } from './repo-conversions.js';
 import { searchRegistry, getPackageFromRegistry, getPackageDetailsFromRegistry, getPackumentForPackageAndLanguage } from './registry.js';
 import { parseRepoUrl, fetchRepoMetadata, fetchRepoReadme, fetchPackagesContents } from './github.js';
 import {
@@ -295,7 +295,8 @@ app.get('/api/repo/:owner/:repo', async (req, res) => {
         }
         let buildTargets = await fetchPackagesContents(req.params.owner, req.params.repo);
         if (buildTargets.length === 0) buildTargets = getBuildTargetsForRepo(name);
-        const repo = { ...row, buildTargets, readme, description: applyDescriptionOverride(name, row.description) };
+        const defaultRepo = getDefaultRepo(name);
+        const repo = { ...row, buildTargets, readme, description: applyDescriptionOverride(name, row.description), defaultRepo };
         return res.json(repo);
       }
     }
@@ -317,6 +318,7 @@ app.get('/api/repo/:owner/:repo', async (req, res) => {
       }
       let buildTargets = await fetchPackagesContents(req.params.owner, req.params.repo);
       if (buildTargets.length === 0) buildTargets = getBuildTargetsForRepo(name);
+      const defaultRepo = getDefaultRepo(name);
       const repo = {
         name: meta.name,
         repoUrl: meta.repoUrl,
@@ -324,6 +326,7 @@ app.get('/api/repo/:owner/:repo', async (req, res) => {
         addedAt: null,
         buildTargets,
         readme,
+        defaultRepo,
       };
       return res.json(repo);
     }
