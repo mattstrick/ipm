@@ -584,17 +584,20 @@ input, textarea, select {
   vertical-align: middle;
 }
 
-.search-related-links {
+.search-build-targets {
   margin: 0.35rem 0 0;
   font-size: 0.875rem;
 }
 
-.search-related-link {
+.search-build-target {
+  display: inline-block;
+  padding: 0.15rem 0.4rem;
+  margin: 0 0.25rem 0.25rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--ipm-gray-100);
   color: var(--ipm-gray-700);
-}
-
-.search-related-link:hover {
-  color: var(--ipm-red);
+  border-radius: 4px;
 }
 
 .main-content .btn-outline {

@@ -16,9 +16,9 @@ import {
   getUserRepoByName,
   getLanguages,
 } from './db.js';
-import { getRelatedLinksForRepo, getReposFromConversions, packageNameFromRepoFullName } from './repo-conversions.js';
+import { getRelatedLinksForRepo, getBuildTargetsForRepo, getReposFromConversions, packageNameFromRepoFullName } from './repo-conversions.js';
 import { searchRegistry, getPackageFromRegistry, getPackageDetailsFromRegistry, getPackumentForPackageAndLanguage } from './registry.js';
-import { parseRepoUrl, fetchRepoMetadata, fetchRepoReadme } from './github.js';
+import { parseRepoUrl, fetchRepoMetadata, fetchRepoReadme, fetchPackagesContents } from './github.js';
 import {
   hashPassword,
   verifyPassword,
@@ -45,7 +45,7 @@ app.get('/api/languages', (req, res) => {
   }
 });
 
-app.get('/api/search', (req, res) => {
+app.get('/api/search', async (req, res) => {
   try {
     const q = (req.query.q || '').trim().toLowerCase();
     const db = getDb();
@@ -54,6 +54,14 @@ app.get('/api/search', (req, res) => {
     if (req.user) {
       const fromRepos = searchUserRepos(db, req.user.id, q, 25);
       for (const r of fromRepos) {
+        const [owner, repo] = (r.name || '').split('/');
+        let buildTargets = [];
+        if (owner && repo) {
+          buildTargets = await fetchPackagesContents(owner, repo);
+          if (buildTargets.length === 0) buildTargets = getBuildTargetsForRepo(r.name);
+        } else {
+          buildTargets = getBuildTargetsForRepo(r.name);
+        }
         results.push({
           name: r.name,
           description: r.description || '',
@@ -62,7 +70,7 @@ app.get('/api/search', (req, res) => {
           source: 'repo',
           repoUrl: r.repoUrl,
           id: r.id,
-          relatedLinks: getRelatedLinksForRepo(r.name),
+          buildTargets,
         });
       }
     } else {
@@ -76,6 +84,13 @@ app.get('/api/search', (req, res) => {
         : repoNames;
       for (const name of filtered.slice(0, 25)) {
         const [owner, repo] = name.split('/');
+        let buildTargets = [];
+        if (owner && repo) {
+          buildTargets = await fetchPackagesContents(owner, repo);
+          if (buildTargets.length === 0) buildTargets = getBuildTargetsForRepo(name);
+        } else {
+          buildTargets = getBuildTargetsForRepo(name);
+        }
         results.push({
           name,
           description: '',
@@ -84,7 +99,7 @@ app.get('/api/search', (req, res) => {
           source: 'public',
           repoUrl: `https://github.com/${owner}/${repo}`,
           id: null,
-          relatedLinks: getRelatedLinksForRepo(name),
+          buildTargets,
         });
       }
     }

@@ -34,6 +34,26 @@ export async function fetchRepoMetadata(owner, repo) {
 }
 
 /**
+ * Fetch the list of packages/* subdirectories from a repo. Returns e.g. ["packages/javascript", "packages/typescript"].
+ * Returns [] if packages/ does not exist or on error.
+ */
+export async function fetchPackagesContents(owner, repo) {
+  const url = `${GITHUB_API}/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/packages`;
+  const res = await fetch(url, {
+    headers: {
+      Accept: 'application/vnd.github.v3+json',
+      'User-Agent': 'ipm-repo-fetcher',
+    },
+  });
+  if (res.status === 404 || !res.ok) return [];
+  const data = await res.json();
+  if (!Array.isArray(data)) return [];
+  return data
+    .filter((item) => item.type === 'dir' && item.name)
+    .map((item) => `packages/${item.name}`);
+}
+
+/**
  * Fetch repo README content from GitHub. Returns null if no README or on error.
  */
 export async function fetchRepoReadme(owner, repo) {

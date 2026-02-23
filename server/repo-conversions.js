@@ -71,6 +71,39 @@ export function getRelatedLinksForRepo(repoName) {
 }
 
 /**
+ * Get the list of packages/* build targets for a repo from repo-conversions.json.
+ * Returns e.g. ["packages/javascript", "packages/typescript", "packages/python"].
+ * Tries exact key first, then case-insensitive match, then base repo (e.g. array-first-javascript -> array-first).
+ */
+export function getBuildTargetsForRepo(repoName) {
+  const data = loadConversions();
+  const key = repoName && typeof repoName === 'string' ? repoName.trim() : '';
+  if (!key) return [];
+  let value = data[key];
+  if (!value) {
+    const keyLower = key.toLowerCase();
+    const matchedKey = Object.keys(data).find((k) => k.toLowerCase() === keyLower);
+    if (matchedKey) value = data[matchedKey];
+  }
+  if (!value) {
+    const [owner, repoPart] = key.split('/');
+    const baseRepo = packageNameFromRepoFullName(key);
+    if (owner && baseRepo && baseRepo !== repoPart) {
+      const baseKey = `${owner}/${baseRepo}`;
+      value = data[baseKey];
+    }
+  }
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value
+      .filter((item) => item != null)
+      .map((item) => (typeof item === 'string' ? `${BUILD_TARGET_DIR}/${item}` : null))
+      .filter(Boolean);
+  }
+  return [];
+}
+
+/**
  * Return list of repo names (owner/repo) from repo-conversions.json.
  */
 export function getReposFromConversions() {

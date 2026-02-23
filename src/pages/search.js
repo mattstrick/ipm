@@ -71,10 +71,10 @@ export function renderSearch(params) {
                         const packageName = packageNameFromRepoFullName(p.name);
                         return packageName ? `/package/${encodeURIComponent(packageName)}` : '#';
                       })();
-                const relatedLinks = p.relatedLinks && Array.isArray(p.relatedLinks) ? p.relatedLinks : [];
-                const relatedLinksHtml =
-                  relatedLinks.length > 0
-                    ? `<p class="search-related-links">${relatedLinks.map((l) => `<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener" class="search-related-link">${escapeHtml(l.label || 'Link')}</a>`).join(' · ')}</p>`
+                const buildTargets = p.buildTargets && Array.isArray(p.buildTargets) ? p.buildTargets : [];
+                const buildTargetsHtml =
+                  buildTargets.length > 0
+                    ? `<p class="search-build-targets">${buildTargets.map((path) => `<code class="search-build-target">${escapeHtml(path)}</code>`).join(' ')}</p>`
                     : '';
                 const metaLabel = p.source === 'public' ? 'Repo' : 'Your repo';
                 return `
@@ -82,7 +82,7 @@ export function renderSearch(params) {
                 <a href="${href}" class="package-name" data-spa>${escapeHtml(p.name)}</a>
                 <span class="package-meta">${escapeHtml(metaLabel)}</span>
                 <p class="package-desc">${escapeHtml(p.description || '')}</p>
-                ${relatedLinksHtml}
+                ${buildTargetsHtml}
               </li>
             `;
               })
