@@ -75,7 +75,7 @@ export function buildPackumentFromIpmPackage(pkg) {
 }
 
 /** Return GitHub archive tarball URL from repo URL (e.g. https://github.com/owner/repo) and version. */
-function githubArchiveTarballFromRepoUrl(repositoryUrl, version) {
+export function githubArchiveTarballFromRepoUrl(repositoryUrl, version) {
   if (!repositoryUrl || typeof repositoryUrl !== 'string') return null;
   const m = repositoryUrl.match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?\/?$/i);
   if (!m) return null;
@@ -85,6 +85,39 @@ function githubArchiveTarballFromRepoUrl(repositoryUrl, version) {
     return `https://github.com/${owner}/${repo}/archive/refs/heads/main.tar.gz`;
   }
   return `https://github.com/${owner}/${repo}/archive/refs/tags/v${v}.tar.gz`;
+}
+
+/** Derive language-variant repo from base package. repo "array-first-javascript" + language "typescript" -> owner/array-first-typescript. */
+function variantRepoFromPackage(pkg, language) {
+  if (!pkg || !pkg.repositoryUrl || !language || typeof language !== 'string') return null;
+  const m = pkg.repositoryUrl.match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?\/?$/i);
+  if (!m) return null;
+  const [, owner, repo] = m;
+  const base = repo.lastIndexOf('-') > 0 ? repo.slice(0, repo.lastIndexOf('-')) : repo;
+  const variantRepo = base + '-' + language.toLowerCase();
+  return `https://github.com/${owner}/${variantRepo}`;
+}
+
+/** Build packument for a language variant of a package (variant repo = base + '-' + language). */
+export function buildPackumentForLanguage(pkg, language) {
+  const variantUrl = variantRepoFromPackage(pkg, language);
+  if (!variantUrl) return null;
+  const version = pkg.version || '0.0.0';
+  const tarball = githubArchiveTarballFromRepoUrl(variantUrl, version);
+  return {
+    name: pkg.name,
+    'dist-tags': { latest: version },
+    versions: {
+      [version]: {
+        name: pkg.name,
+        version,
+        description: (pkg.description || '') + ' (' + language + ' variant)',
+        repository: { type: 'git', url: variantUrl },
+        dist: tarball ? { tarball, integrity: undefined } : undefined,
+      },
+    },
+    time: pkg.publishedAt ? { [version]: pkg.publishedAt, modified: pkg.publishedAt } : undefined,
+  };
 }
 
 /** Fetch full packument for dependencies and versions (not stored in DB). */

@@ -17,7 +17,7 @@ import {
   getLanguages,
 } from './db.js';
 import { getRelatedLinksForRepo, getReposFromConversions, packageNameFromRepoFullName } from './repo-conversions.js';
-import { searchRegistry, getPackageFromRegistry, getPackageDetailsFromRegistry, buildPackumentFromIpmPackage } from './registry.js';
+import { searchRegistry, getPackageFromRegistry, getPackageDetailsFromRegistry, buildPackumentFromIpmPackage, buildPackumentForLanguage } from './registry.js';
 import { parseRepoUrl, fetchRepoMetadata, fetchRepoReadme } from './github.js';
 import {
   hashPassword,
@@ -369,14 +369,18 @@ app.get('/api/package/:name/details', async (req, res) => {
   }
 });
 
-// npm-style registry endpoint for ipm CLI (GET /registry/:name from IPM DB only)
+// npm-style registry endpoint for ipm CLI (GET /registry/:name from IPM DB only; ?language= for variant)
 app.get('/registry/:name', (req, res) => {
   try {
     const name = req.params.name;
+    const language = (req.query.language || '').trim().toLowerCase();
     const db = getDb();
     const pkg = getPackageByName(db, name);
     if (!pkg) return res.status(404).json({ error: 'Not found' });
-    const packument = buildPackumentFromIpmPackage(pkg);
+    const packument = language
+      ? buildPackumentForLanguage(pkg, language)
+      : buildPackumentFromIpmPackage(pkg);
+    if (!packument) return res.status(404).json({ error: 'Variant not found' });
     res.json(packument);
   } catch (err) {
     console.error('Registry packument error:', err);
