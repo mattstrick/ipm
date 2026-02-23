@@ -16,7 +16,7 @@ import {
   getUserRepoByName,
   getLanguages,
 } from './db.js';
-import { getRelatedLinksForRepo, getBuildTargetsForRepo, getReposFromConversions, packageNameFromRepoFullName } from './repo-conversions.js';
+import { getRelatedLinksForRepo, getBuildTargetsForRepo, getReposFromConversions, packageNameFromRepoFullName, applyDescriptionOverride } from './repo-conversions.js';
 import { searchRegistry, getPackageFromRegistry, getPackageDetailsFromRegistry, getPackumentForPackageAndLanguage } from './registry.js';
 import { parseRepoUrl, fetchRepoMetadata, fetchRepoReadme, fetchPackagesContents } from './github.js';
 import {
@@ -64,7 +64,7 @@ app.get('/api/search', async (req, res) => {
         }
         results.push({
           name: r.name,
-          description: r.description || '',
+          description: applyDescriptionOverride(r.name, r.description) || '',
           version: null,
           weeklyDownloads: null,
           source: 'repo',
@@ -93,7 +93,7 @@ app.get('/api/search', async (req, res) => {
         }
         results.push({
           name,
-          description: '',
+          description: applyDescriptionOverride(name, '') || '',
           version: null,
           weeklyDownloads: null,
           source: 'public',
@@ -175,7 +175,10 @@ app.get('/api/repos', (req, res) => {
   if (!req.user) return res.status(401).json({ error: 'Not signed in' });
   try {
     const db = getDb();
-    const repos = getUserRepos(db, req.user.id);
+    const repos = getUserRepos(db, req.user.id).map((r) => ({
+      ...r,
+      description: applyDescriptionOverride(r.name, r.description),
+    }));
     res.json(repos);
   } catch (err) {
     console.error('List repos error:', err);
@@ -292,7 +295,7 @@ app.get('/api/repo/:owner/:repo', async (req, res) => {
         }
         let buildTargets = await fetchPackagesContents(req.params.owner, req.params.repo);
         if (buildTargets.length === 0) buildTargets = getBuildTargetsForRepo(name);
-        const repo = { ...row, buildTargets, readme };
+        const repo = { ...row, buildTargets, readme, description: applyDescriptionOverride(name, row.description) };
         return res.json(repo);
       }
     }
@@ -317,7 +320,7 @@ app.get('/api/repo/:owner/:repo', async (req, res) => {
       const repo = {
         name: meta.name,
         repoUrl: meta.repoUrl,
-        description: meta.description,
+        description: applyDescriptionOverride(name, meta.description),
         addedAt: null,
         buildTargets,
         readme,

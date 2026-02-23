@@ -5,8 +5,11 @@ import { fileURLToPath } from 'url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const conversionsPath = process.env.IPM_REPO_CONVERSIONS_PATH ||
   join(__dirname, '..', 'scripts', 'repo-conversions.json');
+const descriptionsPath = process.env.IPM_REPO_DESCRIPTIONS_PATH ||
+  join(__dirname, '..', 'scripts', 'repo-descriptions.json');
 
 let conversions = null;
+let descriptions = null;
 
 function loadConversions() {
   if (conversions !== null) return conversions;
@@ -108,6 +111,39 @@ export function getBuildTargetsForRepo(repoName) {
  */
 export function getReposFromConversions() {
   return Object.keys(loadConversions());
+}
+
+function loadDescriptions() {
+  if (descriptions !== null) return descriptions;
+  if (!existsSync(descriptionsPath)) {
+    descriptions = {};
+    return descriptions;
+  }
+  try {
+    const raw = readFileSync(descriptionsPath, 'utf8');
+    descriptions = JSON.parse(raw);
+  } catch {
+    descriptions = {};
+  }
+  return descriptions;
+}
+
+/**
+ * Get description override for a repo. Returns override if set, otherwise null.
+ */
+export function getDescriptionOverride(repoName) {
+  const data = loadDescriptions();
+  const key = repoName && typeof repoName === 'string' ? repoName.trim() : '';
+  if (!key) return null;
+  return data[key] ?? null;
+}
+
+/**
+ * Apply description override: use override if set, otherwise return the given description.
+ */
+export function applyDescriptionOverride(repoName, description) {
+  const override = getDescriptionOverride(repoName);
+  return override != null ? override : (description ?? '');
 }
 
 /**
