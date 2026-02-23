@@ -50,6 +50,43 @@ export async function getPackageFromRegistry(name) {
   };
 }
 
+/** Build npm-style packument from an IPM packages table row (DB-only registry). */
+export function buildPackumentFromIpmPackage(pkg) {
+  const version = pkg.version || '0.0.0';
+  const tarball = githubArchiveTarballFromRepoUrl(pkg.repositoryUrl, version);
+  const packument = {
+    name: pkg.name,
+    'dist-tags': { latest: version },
+    versions: {
+      [version]: {
+        name: pkg.name,
+        version,
+        description: pkg.description || undefined,
+        license: pkg.license || undefined,
+        repository: pkg.repositoryUrl ? { type: 'git', url: pkg.repositoryUrl } : undefined,
+        homepage: pkg.homepage || undefined,
+        readme: pkg.readme || undefined,
+        dist: tarball ? { tarball, integrity: undefined } : undefined,
+      },
+    },
+  };
+  if (pkg.publishedAt) packument.time = { [version]: pkg.publishedAt, modified: pkg.publishedAt };
+  return packument;
+}
+
+/** Return GitHub archive tarball URL from repo URL (e.g. https://github.com/owner/repo) and version. */
+function githubArchiveTarballFromRepoUrl(repositoryUrl, version) {
+  if (!repositoryUrl || typeof repositoryUrl !== 'string') return null;
+  const m = repositoryUrl.match(/github\.com[/:]([^/]+)\/([^/]+?)(?:\.git)?\/?$/i);
+  if (!m) return null;
+  const [, owner, repo] = m;
+  const v = (version || '0.0.0').trim().replace(/^v/, '');
+  if (v === '0.0.0' || !v) {
+    return `https://github.com/${owner}/${repo}/archive/refs/heads/main.tar.gz`;
+  }
+  return `https://github.com/${owner}/${repo}/archive/refs/tags/v${v}.tar.gz`;
+}
+
 /** Fetch full packument for dependencies and versions (not stored in DB). */
 export async function getPackageDetailsFromRegistry(name) {
   const url = `${REGISTRY}/${encodeURIComponent(name)}`;

@@ -17,7 +17,7 @@ import {
   getLanguages,
 } from './db.js';
 import { getRelatedLinksForRepo, getReposFromConversions, packageNameFromRepoFullName } from './repo-conversions.js';
-import { searchRegistry, getPackageFromRegistry, getPackageDetailsFromRegistry } from './registry.js';
+import { searchRegistry, getPackageFromRegistry, getPackageDetailsFromRegistry, buildPackumentFromIpmPackage } from './registry.js';
 import { parseRepoUrl, fetchRepoMetadata, fetchRepoReadme } from './github.js';
 import {
   hashPassword,
@@ -365,6 +365,21 @@ app.get('/api/package/:name/details', async (req, res) => {
     res.json(details);
   } catch (err) {
     console.error('Package details error:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// npm-style registry endpoint for ipm CLI (GET /registry/:name from IPM DB only)
+app.get('/registry/:name', (req, res) => {
+  try {
+    const name = req.params.name;
+    const db = getDb();
+    const pkg = getPackageByName(db, name);
+    if (!pkg) return res.status(404).json({ error: 'Not found' });
+    const packument = buildPackumentFromIpmPackage(pkg);
+    res.json(packument);
+  } catch (err) {
+    console.error('Registry packument error:', err);
     res.status(500).json({ error: err.message });
   }
 });
