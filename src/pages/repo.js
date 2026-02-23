@@ -37,10 +37,6 @@ export function renderRepo(params) {
 
   const contentEl = section.querySelector('#repo-content');
 
-  function getRelatedLinks(r) {
-    return (r.relatedLinks && Array.isArray(r.relatedLinks)) ? r.relatedLinks : [];
-  }
-
   (async () => {
     try {
       const r = await getRepo(owner, repo);
@@ -55,7 +51,11 @@ export function renderRepo(params) {
         return;
       }
       const name = r.name || `${owner}/${repo}`;
-      const relatedLinks = getRelatedLinks(r);
+      const buildTargets = (r.buildTargets && Array.isArray(r.buildTargets)) ? r.buildTargets : [];
+      const buildTargetsHtml = buildTargets.length > 0
+        ? `<div class="meta-row"><strong>Build targets</strong></div>
+           <div class="repo-build-targets">${buildTargets.map((path) => `<code class="repo-build-target">${escapeHtml(path)}</code>`).join(' ')}</div>`
+        : '';
       contentEl.innerHTML = `
         <div class="package-header">
           <div class="package-title">
@@ -79,7 +79,7 @@ export function renderRepo(params) {
               <h3>Repository</h3>
               <div class="meta-row"><strong>Added</strong> ${formatDate(r.addedAt)}</div>
               <div class="meta-row"><a href="${escapeHtml(r.repoUrl)}" target="_blank" rel="noopener">View on GitHub</a></div>
-              ${relatedLinks.map((l) => `<div class="meta-row"><strong>${escapeHtml(l.label || 'Related')}</strong> <a href="${escapeHtml(l.url)}" target="_blank" rel="noopener">Link</a></div>`).join('')}
+              ${buildTargetsHtml}
             </div>
           </aside>
         </div>

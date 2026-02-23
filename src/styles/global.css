@@ -600,6 +600,21 @@ input, textarea, select {
   border-radius: 4px;
 }
 
+.repo-build-targets {
+  margin-top: 0.5rem;
+}
+
+.repo-build-target {
+  display: inline-block;
+  padding: 0.15rem 0.4rem;
+  margin: 0 0.25rem 0.25rem 0;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  background: var(--ipm-gray-100);
+  color: var(--ipm-gray-700);
+  border-radius: 4px;
+}
+
 .main-content .btn-outline {
   color: var(--ipm-red);
   border-color: var(--ipm-red);

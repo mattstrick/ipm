@@ -290,7 +290,9 @@ app.get('/api/repo/:owner/:repo', async (req, res) => {
         } catch {
           // leave readme null on fetch error
         }
-        const repo = { ...row, relatedLinks: getRelatedLinksForRepo(name), readme };
+        let buildTargets = await fetchPackagesContents(req.params.owner, req.params.repo);
+        if (buildTargets.length === 0) buildTargets = getBuildTargetsForRepo(name);
+        const repo = { ...row, buildTargets, readme };
         return res.json(repo);
       }
     }
@@ -310,12 +312,14 @@ app.get('/api/repo/:owner/:repo', async (req, res) => {
       } catch {
         // leave readme null
       }
+      let buildTargets = await fetchPackagesContents(req.params.owner, req.params.repo);
+      if (buildTargets.length === 0) buildTargets = getBuildTargetsForRepo(name);
       const repo = {
         name: meta.name,
         repoUrl: meta.repoUrl,
         description: meta.description,
         addedAt: null,
-        relatedLinks: getRelatedLinksForRepo(name),
+        buildTargets,
         readme,
       };
       return res.json(repo);
